@@ -61,7 +61,7 @@ export default function Navbar() {
           {/* CTAs */}
           <div className="hidden lg:flex items-center gap-3">
             <a
-              href="#"
+              href="/signin"
               className={cn(
                 "text-sm font-medium transition-colors hover:text-indigo-400",
                 scrolled ? "text-slate-600" : "text-slate-300"
@@ -70,7 +70,7 @@ export default function Navbar() {
               Log In
             </a>
             <a
-              href="#"
+              href="/signin"
               className="flex items-center gap-1.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-semibold px-5 py-2.5 rounded-full shadow-btn hover:-translate-y-0.5 transition-all duration-200"
             >
               Start Free Trial
@@ -109,10 +109,10 @@ export default function Navbar() {
               </a>
             ))}
             <div className="border-t border-slate-200 mt-2 pt-4 flex flex-col gap-2">
-              <a href="#" className="text-slate-600 font-medium py-2.5 px-3 rounded-lg hover:bg-slate-50 text-center">
+              <a href="/signin" className="text-slate-600 font-medium py-2.5 px-3 rounded-lg hover:bg-slate-50 text-center">
                 Log In
               </a>
-              <a href="#" className="bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-semibold py-3 px-5 rounded-full text-center shadow-btn">
+              <a href="/signin" className="bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-semibold py-3 px-5 rounded-full text-center shadow-btn">
                 Start Free Trial →
               </a>
             </div>

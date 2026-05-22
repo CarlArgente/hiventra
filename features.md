@@ -17,7 +17,6 @@ Every page includes:
 
 | # | Page Name | Who Sees It |
 |---|---|---|
-| 1 | Login / Auth Page | All users |
 | 2 | HR Dashboard (Home) | HR, Hiring Manager, Admin |
 | 3 | Job Management Page | HR, Admin |
 | 4 | Create / Edit Job Page | HR, Admin |
@@ -79,7 +78,6 @@ UI Requirements:
   indigo or electric blue, clean sans-serif typography (Inter or Geist), minimal 
   shadows, subtle animations
 
-Tech: Build as a React component with form validation. Use Tailwind CSS for 
 styling. Implement OTP input as 6 individual digit boxes. 
 No localStorage — use in-memory session state.
 ```
@@ -181,7 +179,6 @@ Design and build the Job Management page for Hiventra, an AI Talent
 Intelligence Platform.
 
 Layout:
-- Shared top nav + left sidebar (consistent with dashboard)
 - Page header row: "Job Management" (h1) on left, "Create New Job" 
   primary button (indigo) on right
 - Below header: search input (left) + filter tabs (All / Draft / Active / 
@@ -208,8 +205,9 @@ Design: Clean enterprise table with hover row highlight, sticky header,
 alternating subtle row backgrounds. Status badges are pill-shaped. 
 Action menu is a dropdown popover.
 
-Tech: React + Tailwind CSS. Table with sortable columns. Filter tabs update 
-list in real time. Mock data array as prop. Confirmation modal for Archive/Close.
+
+Use the design-system.md for the theme or design system of the app.
+
 ```
 
 ---

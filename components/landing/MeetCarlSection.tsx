@@ -157,7 +157,7 @@ export default function MeetCarlSection() {
             </p>
 
             <a
-              href="#"
+              href="#how-it-works"
               className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-semibold px-7 py-3.5 rounded-full shadow-btn hover:-translate-y-0.5 transition-all duration-200"
             >
               See Carl in Action →
