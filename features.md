@@ -370,11 +370,11 @@ Section 4 — Completion Summary (replaces queue after all done):
   - CTA button: "View Candidates" (indigo filled)
   - Secondary: "Upload More Resumes"
 
-Design: Clean, minimal upload UI. Drop zone is prominent and centered. 
+Design: Use design-system.md Drop zone is prominent and centered. 
 Status badges are pill-shaped with matching icon. Progress is animated.
 Errors are clearly surfaced inline — never as modal popups.
 
-Tech: React + Tailwind CSS. File input with multiple attribute. 
+Tech: Tailwind CSS. File input with multiple attribute. 
 Drag events on drop zone div. Upload queue as state array. 
 Simulate async parsing with status transitions. No real file upload needed 
 for prototype — mock with setTimeout state changes.
@@ -559,11 +559,11 @@ Activity Log Card:
   - Scrollable list of timestamped events (Resume Uploaded, Score Generated, 
     Invite Sent, Interview Completed, Note Added)
 
-Design: Clean two-column profile layout. Score gauge is the hero element 
+Design: Use design-system.md as your reference for theme. Clean two-column profile layout. Score gauge is the hero element 
 of the page. Cards have subtle shadows and 8px border radius. 
 Action sidebar is sticky on scroll. Status badge colors match pipeline conventions.
 
-Tech: React + Tailwind CSS. Score gauge: SVG circle or recharts RadialBarChart. 
+Tech: Score gauge: SVG circle or recharts RadialBarChart. 
 Progress bars: animated on mount. Comments: controlled textarea state. 
 Mock candidate object as prop.
 ```

@@ -1,13 +1,26 @@
-import PlaceholderPage from "@/components/dashboard/PlaceholderPage";
-import { Upload } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
+import Topbar from "@/components/dashboard/Topbar";
+import ResumeUploadClient from "@/components/dashboard/upload/ResumeUploadClient";
 
-export default function UploadPage() {
+export default async function UploadPage() {
+  const supabase = await createClient();
+  await supabase.auth.getUser();
+
+  const { data: activeJobs } = await supabase
+    .from("jobs")
+    .select("id, title, department, required_skills, description")
+    .eq("status", "active")
+    .order("created_at", { ascending: false });
+
   return (
-    <PlaceholderPage
-      title="Resume Upload"
-      subtitle="Upload candidate resumes for AI screening"
-      description="Drag and drop up to 50 PDF or DOCX resumes. Hiventra will parse, score, and create candidate profiles automatically using Carl AI."
-      icon={Upload}
-    />
+    <>
+      <Topbar
+        title="Upload Resumes"
+        subtitle="Upload up to 50 resumes at once. Hiventra will parse, score, and create candidate profiles automatically."
+      />
+      <main className="flex-1 overflow-y-auto p-6">
+        <ResumeUploadClient activeJobs={activeJobs ?? []} />
+      </main>
+    </>
   );
 }
