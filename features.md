@@ -1233,10 +1233,12 @@ Override badges are color-coded clearly.
 Immutability is visually communicated (lock icon on audit rows, 
 "Immutable Record" label).
 
-Tech: React + Tailwind CSS. Audit table: sortable + filterable + 
+Tech: Audit table: sortable + filterable + 
 row expand on click. Anomaly alerts: array state. 
 Explainability: mock lookup from candidate array. 
 CSV export: Blob download from table data.
+
+Make sure all data is dynamic from supabase database
 ```
 
 ---

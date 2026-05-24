@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { writeAuditEntry } from "./audit";
 
 export interface InterviewHighlight {
   question: string;
@@ -90,7 +91,7 @@ export async function generateInterviewAnalysis(candidateId: string) {
   const { data: candidate } = await supabase
     .from("candidates")
     .select(`
-      id,
+      id, full_name, job_id,
       jobs (title),
       interviews (id, responses, status)
     `)
@@ -189,6 +190,20 @@ Rules:
       .from("candidates")
       .update({ ai_analyzed_at: new Date().toISOString() })
       .eq("id", candidateId);
+
+    // Write immutable audit entry for this analysis
+    await writeAuditEntry({
+      event_type: "interview_analyzed",
+      candidate_id: candidateId,
+      candidate_name: (candidate as any).full_name ?? candidateId,
+      job_id: (candidate as any).job_id ?? interviewId,
+      job_title: jobTitle,
+      ai_score: parsed.score,
+      ai_recommendation: parsed.recommendation,
+      human_action: "no_action",
+      is_override: false,
+      ai_justification: parsed.summary,
+    });
 
     revalidatePath(`/dashboard/candidates/${candidateId}/report`);
 

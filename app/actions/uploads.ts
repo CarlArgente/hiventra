@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { writeAuditEntry } from "./audit";
 
 export interface UploadedFile {
   filename: string;
@@ -24,6 +25,13 @@ export async function submitUploadBatch(jobId: string, files: UploadedFile[]) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "Unauthorized" };
+
+  const { data: jobRow } = await supabase
+    .from("jobs")
+    .select("title")
+    .eq("id", jobId)
+    .single();
+  const jobTitle = (jobRow as any)?.title ?? "Unknown Job";
 
   const results: { uploadId: string; candidateId: string | null }[] = [];
 
@@ -51,6 +59,21 @@ export async function submitUploadBatch(jobId: string, files: UploadedFile[]) {
         .single();
 
       candidateId = candidate?.id ?? null;
+
+      if (candidateId) {
+        await writeAuditEntry({
+          event_type: "resume_scored",
+          candidate_id: candidateId,
+          candidate_name: file.full_name ?? file.filename,
+          job_id: jobId,
+          job_title: jobTitle,
+          ai_score: file.ai_score,
+          ai_recommendation: null,
+          human_action: "no_action",
+          is_override: false,
+          ai_justification: file.ai_summary,
+        });
+      }
     }
 
     const { data: upload } = await supabase

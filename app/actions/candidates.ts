@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import type { PipelineStage } from "@/components/dashboard/pipeline/pipeline-types";
 import { Resend } from "resend";
+import { writeAuditEntry } from "./audit";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -187,7 +188,7 @@ export async function updateCandidateStageFromProfile(
   stage: PipelineStage
 ) {
   const supabase = await createClient();
-  await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
 
   const { error } = await supabase
     .from("candidates")
@@ -195,6 +196,52 @@ export async function updateCandidateStageFromProfile(
     .eq("id", candidateId);
 
   if (error) return { error: error.message };
+
+  // Write audit entry when HR makes a decision
+  const DECISION_STAGES = ["recommended", "hired", "rejected"];
+  if (DECISION_STAGES.includes(stage)) {
+    const { data: c } = await supabase
+      .from("candidates")
+      .select("full_name, job_id, ai_recommendation, jobs(title)")
+      .eq("id", candidateId)
+      .single();
+
+    if (c) {
+      const jobTitle = (c.jobs as any)?.title ?? "Unknown Job";
+      const aiRec = (c as any).ai_recommendation as string | null;
+      const isOverride =
+        (stage === "rejected" && (aiRec === "strongly_recommend" || aiRec === "recommend")) ||
+        (stage !== "rejected" && aiRec === "do_not_recommend");
+
+      let humanAction: string;
+      if (stage === "rejected" && (aiRec === "strongly_recommend" || aiRec === "recommend")) {
+        humanAction = "override_reject";
+      } else if ((stage === "recommended" || stage === "hired") && aiRec === "do_not_recommend") {
+        humanAction = "override_approve";
+      } else {
+        humanAction = "followed_ai";
+      }
+
+      const { data: profile } = user
+        ? await supabase.from("profiles").select("full_name").eq("id", user.id).single()
+        : { data: null };
+
+      await writeAuditEntry({
+        event_type: "stage_changed",
+        candidate_id: candidateId,
+        candidate_name: (c as any).full_name,
+        job_id: (c as any).job_id,
+        job_title: jobTitle,
+        ai_recommendation: aiRec,
+        human_action: humanAction,
+        human_action_by: user?.id,
+        human_action_by_name: (profile as any)?.full_name ?? user?.email,
+        is_override: isOverride,
+        metadata: { new_stage: stage },
+      });
+    }
+  }
+
   revalidatePath(`/dashboard/candidates/${candidateId}`);
   revalidatePath("/dashboard/pipeline");
   return { success: true };
