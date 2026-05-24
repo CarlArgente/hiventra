@@ -650,7 +650,7 @@ Design: Configuration cards use clear selected vs unselected states.
 Segmented controls are clean pill buttons. Preview panel has subtle indigo 
 tint background. Carl avatar icon is a stylized "C" in an indigo circle.
 
-Tech: React + Tailwind CSS. All selections as controlled state. 
+Tech: All selections as controlled state. 
 Preview question updates based on selected personality + role type combination 
 (use a lookup map of sample questions per combination).
 ```
@@ -751,7 +751,7 @@ indigo accents. Carl's question card uses white background on dark
 for strong contrast. No distracting elements. Mobile responsive.
 Carl avatar is consistent throughout all states.
 
-Tech: React + Tailwind CSS. State machine: preCheck → active → complete. 
+Tech: State machine: preCheck → active → complete. 
 Question cycling with index state. Text mode: controlled textarea. 
 Timer: useEffect + setInterval. Voice: use MediaRecorder API stub. 
 No localStorage — all state in memory.
@@ -870,9 +870,9 @@ Highlights section feels like annotated interview notes.
 Skill bars animate in. Risk indicators use amber/yellow — 
 never red (which is reserved for Do Not Recommend).
 
-Tech: React + Tailwind CSS. Score gauge: SVG donut ring. 
+Tech: Score gauge: SVG donut ring. 
 Skill bars: animated via Intersection Observer. PDF export: 
-window.print() with print-specific CSS or jsPDF. Mock report data as prop.
+window.print() with print-specific CSS or jsPDF. 
 ```
 
 ---
@@ -950,7 +950,7 @@ approval status, and discussion. Approval stepper uses clear
 pending/complete states. Comment threads are readable and compact.
 Score alignment table uses color coding (green=aligned, amber=diverged).
 
-Tech: React + Tailwind CSS. Tab state controlled. Comparison table: 
+Tech: Tab state controlled. Comparison table: 
 sortable. Approval stages: state machine per candidate. Comments: 
 array state with reply nesting (1 level). @mention: 
 simple text match from team members list.
@@ -1048,7 +1048,7 @@ with strong contrast. Charts use recharts library.
 Color system: indigo primary, green positive, red/amber negative. 
 Responsive — charts stack on smaller screens.
 
-Tech: React + Tailwind CSS + recharts for all charts 
+Tech: recharts for all charts 
 (LineChart, BarChart, ScatterChart, custom funnel). 
 All data from mock JSON props. Date filter updates all charts simultaneously. 
 CSV export: generate from mock data with Blob download.
@@ -1144,7 +1144,7 @@ Interview card is the most prominent element. Carl avatar is consistent
 with interview room. Progress tracker is clear and motivating. 
 Mobile-first — all sections stack vertically.
 
-Tech: React + Tailwind CSS. Step tracker: array of stages with status. 
+Tech: Step tracker: array of stages with status. 
 Interview card: conditional rendering based on interview status state. 
 File upload: simple input with file list state. Profile: controlled form.
 ```

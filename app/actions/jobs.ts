@@ -22,6 +22,51 @@ export interface JobPayload {
   carl_personality: string;
   carl_duration: number;
   carl_max_questions: number;
+  carl_topics?: string[];
+  carl_role_type?: string;
+}
+
+export interface JobSummary {
+  id: string;
+  title: string;
+  company: string;
+  carl_mode: string | null;
+  carl_personality: string | null;
+  carl_duration: number | null;
+  carl_max_questions: number | null;
+  carl_topics: string[] | null;
+  carl_role_type: string | null;
+}
+
+export async function getJobsForCarlConfig(): Promise<JobSummary[]> {
+  const supabase = await createClient();
+  await supabase.auth.getUser();
+  const { data } = await supabase
+    .from("jobs")
+    .select("id, title, company, carl_mode, carl_personality, carl_duration, carl_max_questions, carl_topics, carl_role_type")
+    .eq("status", "active")
+    .order("created_at", { ascending: false });
+  return data ?? [];
+}
+
+export async function saveCarlConfig(
+  jobId: string,
+  config: {
+    carl_mode: string;
+    carl_personality: string;
+    carl_duration: number;
+    carl_max_questions: number;
+    carl_topics: string[];
+    carl_role_type: string;
+  }
+) {
+  const supabase = await createClient();
+  await supabase.auth.getUser();
+  const { error } = await supabase.from("jobs").update(config).eq("id", jobId);
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard/carl-config");
+  revalidatePath("/dashboard/jobs");
+  return { success: true };
 }
 
 export async function createJob(payload: JobPayload) {

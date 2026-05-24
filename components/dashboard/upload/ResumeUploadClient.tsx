@@ -269,6 +269,8 @@ export default function ResumeUploadClient({ activeJobs }: Props) {
         aiWeaknesses: string[];
         errorReason: string | null;
         storagePath: string | null;
+        email: string | null;
+        candidateName: string | null;
       }
     > = {};
 
@@ -308,19 +310,20 @@ export default function ResumeUploadClient({ activeJobs }: Props) {
           results[qf.id] = {
             status: "error", aiScore: null, aiSummary: null,
             aiStrengths: [], aiWeaknesses: [], errorReason: res.error, storagePath,
+            email: null, candidateName: null,
           };
         } else if ((res.score ?? 0) < PASSING_SCORE) {
           results[qf.id] = {
             status: "error", aiScore: res.score ?? null, aiSummary: res.summary ?? null,
             aiStrengths: res.strengths ?? [], aiWeaknesses: res.weaknesses ?? [],
             errorReason: `Score too low (${res.score}/100) — minimum passing score is ${PASSING_SCORE}`,
-            storagePath,
+            storagePath, email: res.email ?? null, candidateName: res.full_name ?? null,
           };
         } else {
           results[qf.id] = {
             status: "scored", aiScore: res.score ?? null, aiSummary: res.summary ?? null,
             aiStrengths: res.strengths ?? [], aiWeaknesses: res.weaknesses ?? [],
-            errorReason: null, storagePath,
+            errorReason: null, storagePath, email: res.email ?? null, candidateName: res.full_name ?? null,
           };
         }
 
@@ -344,6 +347,8 @@ export default function ResumeUploadClient({ activeJobs }: Props) {
         error_reason: r?.errorReason ?? null,
         status: r?.status === "error" ? "error" : "scored",
         storage_path: r?.storagePath ?? null,
+        email: r?.email ?? null,
+        full_name: r?.candidateName ?? null,
       };
     });
 

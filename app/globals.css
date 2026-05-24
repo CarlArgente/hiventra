@@ -20,6 +20,24 @@
   box-sizing: border-box;
 }
 
+html,
+body {
+  overflow-x: hidden;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes waveform {
+  0%   { transform: scaleY(0.3); }
+  100% { transform: scaleY(1); }
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -112,4 +130,15 @@ body {
 .reveal.in-view {
   opacity: 1;
   transform: none;
+}
+
+.print-no-break {
+  break-inside: avoid;
+}
+
+@media print {
+  nav, aside, header, [data-print-hide] { display: none !important; }
+  body { background: white !important; }
+  .print-no-break { break-inside: avoid; }
+  @page { margin: 1.5cm; size: A4; }
 }

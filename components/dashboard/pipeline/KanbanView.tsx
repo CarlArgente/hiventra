@@ -1,18 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useId } from "react";
 import {
   DndContext,
   DragOverlay,
   DragStartEvent,
   DragEndEvent,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   closestCenter,
 } from "@dnd-kit/core";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
-import { GripVertical, ExternalLink } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   PipelineCandidate,
@@ -106,6 +107,7 @@ function CandidateCard({
       ref={setNodeRef}
       style={style}
       {...attributes}
+      {...listeners}
       className={cn(
         "bg-white rounded-xl border shadow-sm p-3.5 select-none transition-all duration-150",
         !isOverlay && "cursor-grab active:cursor-grabbing touch-none",
@@ -120,14 +122,6 @@ function CandidateCard({
       )}
     >
       <div className="flex items-start gap-2">
-        {/* Drag handle */}
-        <div
-          {...listeners}
-          className="mt-0.5 text-slate-300 hover:text-slate-400 flex-shrink-0 cursor-grab"
-        >
-          <GripVertical className="w-3.5 h-3.5" />
-        </div>
-
         {/* Checkbox */}
         <input
           type="checkbox"
@@ -157,14 +151,23 @@ function CandidateCard({
 
           {/* Score + Recommendation */}
           <div className="flex flex-wrap gap-1.5 mb-2">
-            {candidate.ai_score !== null && (
+            {candidate.has_intelligence_report && candidate.interview_ai_score !== null ? (
               <span className={cn(
-                "inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold",
+                "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold",
+                scoreColorClass(candidate.interview_ai_score)
+              )}>
+                <span className="font-medium opacity-70">Interview</span>
+                {candidate.interview_ai_score}/100
+              </span>
+            ) : candidate.ai_score !== null ? (
+              <span className={cn(
+                "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold",
                 scoreColorClass(candidate.ai_score)
               )}>
+                <span className="font-medium opacity-70">Resume</span>
                 {candidate.ai_score}/100
               </span>
-            )}
+            ) : null}
             {candidate.ai_recommendation && (
               <span className={cn(
                 "inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium",
@@ -175,19 +178,30 @@ function CandidateCard({
             )}
           </div>
 
-          {/* Interview mode + View Profile */}
+          {/* Interview mode + link */}
           <div className="flex items-center justify-between">
             <span className="text-sm">
               {candidate.interview_mode ? modeIcon(candidate.interview_mode) : ""}
             </span>
-            <a
-              href={`/dashboard/candidates/${candidate.id}`}
-              onClick={(e) => e.stopPropagation()}
-              className="inline-flex items-center gap-0.5 text-[10px] text-indigo-600 hover:text-indigo-800 font-semibold"
-            >
-              View Profile
-              <ExternalLink className="w-2.5 h-2.5" />
-            </a>
+            {candidate.has_intelligence_report ? (
+              <a
+                href={`/dashboard/candidates/${candidate.id}/report`}
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center gap-0.5 text-[10px] text-indigo-600 hover:text-indigo-800 font-semibold"
+              >
+                View Intelligence Report
+                <ExternalLink className="w-2.5 h-2.5" />
+              </a>
+            ) : (
+              <a
+                href={`/dashboard/candidates/${candidate.id}`}
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center gap-0.5 text-[10px] text-indigo-600 hover:text-indigo-800 font-semibold"
+              >
+                View Profile
+                <ExternalLink className="w-2.5 h-2.5" />
+              </a>
+            )}
           </div>
         </div>
       </div>
@@ -272,9 +286,11 @@ export default function KanbanView({
   onStageChange,
 }: KanbanViewProps) {
   const [activeCandidate, setActiveCandidate] = useState<PipelineCandidate | null>(null);
+  const dndId = useId();
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } })
   );
 
   function handleDragStart(event: DragStartEvent) {
@@ -292,12 +308,13 @@ export default function KanbanView({
 
   return (
     <DndContext
+      id={dndId}
       sensors={sensors}
       collisionDetection={closestCenter}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex gap-3 p-6 overflow-x-auto h-full items-start">
+      <div className="flex gap-3 p-6 overflow-x-auto h-full items-start no-scrollbar">
         {PIPELINE_STAGES.map((stage) => (
           <KanbanColumn
             key={stage}

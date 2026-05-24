@@ -30,7 +30,7 @@ export async function getCandidatesForJob(jobId: string): Promise<PipelineCandid
     .select(
       `id, full_name, email, stage, ai_score, ai_recommendation,
        ai_summary, resume_filename, resume_url, created_at, updated_at,
-       interviews(mode, status)`
+       interviews(mode, status, ai_score, ai_analyzed_at)`
     )
     .eq("job_id", jobId)
     .order("created_at", { ascending: false });
@@ -39,6 +39,8 @@ export async function getCandidatesForJob(jobId: string): Promise<PipelineCandid
 
   return data.map((c) => {
     const iv = Array.isArray(c.interviews) ? c.interviews[0] : null;
+    const ivTyped = iv as { mode?: string; status?: string; ai_score?: number | null; ai_analyzed_at?: string | null } | null;
+    const hasReport = !!(ivTyped?.ai_analyzed_at);
     return {
       id: c.id,
       full_name: c.full_name,
@@ -51,8 +53,10 @@ export async function getCandidatesForJob(jobId: string): Promise<PipelineCandid
       resume_url: c.resume_url,
       created_at: c.created_at,
       updated_at: c.updated_at,
-      interview_mode: (iv as { mode?: string } | null)?.mode ?? null,
-      interview_status: (iv as { status?: string } | null)?.status ?? null,
+      interview_mode: ivTyped?.mode ?? null,
+      interview_status: ivTyped?.status ?? null,
+      interview_ai_score: ivTyped?.ai_score ?? null,
+      has_intelligence_report: hasReport,
     };
   });
 }

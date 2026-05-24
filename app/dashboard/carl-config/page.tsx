@@ -1,13 +1,17 @@
-import PlaceholderPage from "@/components/dashboard/PlaceholderPage";
-import { Bot } from "lucide-react";
+import Topbar from "@/components/dashboard/Topbar";
+import CarlConfigClient from "@/components/dashboard/carl-config/CarlConfigClient";
+import { getJobsForCarlConfig } from "@/app/actions/jobs";
 
-export default function CarlConfigPage() {
+export default async function CarlConfigPage() {
+  const jobs = await getJobsForCarlConfig();
+
   return (
-    <PlaceholderPage
-      title="Carl Interview Config"
-      subtitle="Configure how Carl conducts interviews"
-      description="Set interview mode (Text / Voice / Video), Carl's personality, duration, max questions, and topics to include or exclude. Preview Carl's sample questions live."
-      icon={Bot}
-    />
+    <>
+      <Topbar
+        title="Configure Carl Interview"
+        subtitle="Set how Carl conducts AI-powered interviews for each job"
+      />
+      <CarlConfigClient jobs={jobs} />
+    </>
   );
 }

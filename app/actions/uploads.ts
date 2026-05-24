@@ -14,6 +14,8 @@ export interface UploadedFile {
   error_reason: string | null;
   status: "scored" | "error";
   storage_path: string | null;
+  email: string | null;
+  full_name: string | null;
 }
 
 export async function submitUploadBatch(jobId: string, files: UploadedFile[]) {
@@ -29,12 +31,14 @@ export async function submitUploadBatch(jobId: string, files: UploadedFile[]) {
     let candidateId: string | null = null;
 
     if (file.status === "scored" && file.ai_score !== null) {
+      const fallbackName = file.filename.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
+      const fallbackEmail = `parsed_${Date.now()}_${Math.random().toString(36).slice(2)}@placeholder.com`;
       const { data: candidate } = await supabase
         .from("candidates")
         .insert({
           job_id: jobId,
-          email: `parsed_${Date.now()}_${Math.random().toString(36).slice(2)}@placeholder.com`,
-          full_name: file.filename.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " "),
+          email: file.email ?? fallbackEmail,
+          full_name: file.full_name ?? fallbackName,
           resume_filename: file.filename,
           resume_url: file.storage_path,
           stage: "uploaded",

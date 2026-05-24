@@ -45,4 +45,6 @@ export interface PipelineCandidate {
   updated_at: string;
   interview_mode: string | null;
   interview_status: string | null;
+  interview_ai_score: number | null;
+  has_intelligence_report: boolean;
 }

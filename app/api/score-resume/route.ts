@@ -8,7 +8,9 @@ const JSON_SCHEMA = `{
   "score": <integer 0-100 reflecting actual resume quality and fit>,
   "strengths": ["<specific strength from the resume>", "<specific strength>", "<specific strength>"],
   "weaknesses": ["<specific gap or missing qualification>", "<another gap if any>"],
-  "summary": "<one concise sentence describing the candidate fit based on actual resume content>"
+  "summary": "<one concise sentence describing the candidate fit based on actual resume content>",
+  "email": "<candidate's email address extracted from the resume, or null if not found>",
+  "full_name": "<candidate's full name extracted from the resume, or null if not found>"
 }`;
 
 export async function POST(request: NextRequest) {
@@ -130,6 +132,8 @@ ${JSON_SCHEMA}`,
       strengths: parsed.strengths ?? [],
       weaknesses: parsed.weaknesses ?? [],
       summary: parsed.summary ?? "",
+      email: parsed.email ?? null,
+      full_name: parsed.full_name ?? null,
     });
   } catch (e) {
     console.error("score-resume route error:", e);

@@ -1,13 +1,19 @@
-import PlaceholderPage from "@/components/dashboard/PlaceholderPage";
-import { BarChart3 } from "lucide-react";
+import Topbar from "@/components/dashboard/Topbar";
+import AnalyticsLoader from "@/components/dashboard/analytics/AnalyticsLoader";
+import { getAnalyticsData } from "@/app/actions/analytics";
 
-export default function AnalyticsPage() {
+export default async function AnalyticsPage() {
+  const data = await getAnalyticsData();
+
   return (
-    <PlaceholderPage
-      title="Analytics Dashboard"
-      subtitle="Hiring intelligence across all your jobs"
-      description="Track time-to-hire, interview completion rate, AI score distributions, skill gaps, and AI vs. human score alignment. Export as CSV or PDF."
-      icon={BarChart3}
-    />
+    <>
+      <Topbar
+        title="Analytics"
+        subtitle="Hiring intelligence across all your jobs"
+      />
+      <main className="flex-1 overflow-y-auto bg-brand-bg">
+        <AnalyticsLoader data={data} />
+      </main>
+    </>
   );
 }
