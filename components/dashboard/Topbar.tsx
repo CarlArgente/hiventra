@@ -4,6 +4,7 @@ import { Bell, LogOut, Menu } from "lucide-react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useMobileNav } from "./DashboardShell";
 
 interface TopbarProps {
@@ -11,9 +12,33 @@ interface TopbarProps {
   subtitle?: string;
 }
 
+interface UserProfile {
+  avatar_url: string | null;
+  full_name: string | null;
+}
+
+function getInitials(name: string | null): string {
+  if (!name) return "?";
+  return name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+}
+
 export default function Topbar({ title, subtitle }: TopbarProps) {
   const router = useRouter();
   const { openMobileNav } = useMobileNav();
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      supabase
+        .from("profiles")
+        .select("avatar_url, full_name")
+        .eq("id", user.id)
+        .single()
+        .then(({ data }) => setProfile(data));
+    });
+  }, []);
 
   async function handleSignOut() {
     const supabase = createClient();
@@ -44,8 +69,14 @@ export default function Topbar({ title, subtitle }: TopbarProps) {
         </button>
         <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>
-            <button className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center text-white text-xs font-bold focus:outline-none">
-              CA
+            <button className="w-9 h-9 rounded-full overflow-hidden focus:outline-none ring-2 ring-transparent hover:ring-indigo-300 transition-all">
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt={profile.full_name ?? "User"} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              ) : (
+                <span className="w-full h-full bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center text-white text-xs font-bold">
+                  {getInitials(profile?.full_name ?? null)}
+                </span>
+              )}
             </button>
           </DropdownMenu.Trigger>
           <DropdownMenu.Portal>

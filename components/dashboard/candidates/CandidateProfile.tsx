@@ -38,6 +38,7 @@ import {
   addCandidateNote,
   updateCandidateInfo,
 } from "@/app/actions/candidates";
+import { resendCandidateCredentials } from "@/app/actions/candidate-accounts";
 import { getResumeSignedUrl } from "@/app/actions/storage";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -261,6 +262,7 @@ export default function CandidateProfile({
   const [notePrivate, setNotePrivate] = useState(false);
   const [noteLoading, setNoteLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [resendResult, setResendResult] = useState<{ success?: boolean; error?: string } | null>(null);
   const [mounted, setMounted] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -424,7 +426,13 @@ export default function CandidateProfile({
     primaryAction = {
       label: "Resend Invite",
       icon: <RefreshCw className="w-4 h-4" />,
-      action: handleSendInvite,
+      action: async () => {
+        setActionLoading(true);
+        setResendResult(null);
+        const res = await resendCandidateCredentials(candidate.id);
+        setResendResult(res);
+        setActionLoading(false);
+      },
     };
   } else if (ivStatus === "started") {
     primaryAction = {
@@ -842,9 +850,23 @@ export default function CandidateProfile({
                 disabled={primaryAction.disabled || actionLoading}
                 className="w-full mb-3 py-2.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-semibold flex items-center justify-center gap-2 hover:-translate-y-0.5 transition-all duration-200 shadow-md disabled:opacity-50 disabled:translate-y-0"
               >
-                {primaryAction.icon}
-                {primaryAction.label}
+                {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : primaryAction.icon}
+                {actionLoading ? "Sending…" : primaryAction.label}
               </button>
+            )}
+
+            {resendResult && (
+              <div className={cn(
+                "flex items-start gap-2 px-3 py-2.5 rounded-lg text-xs mb-3",
+                resendResult.error
+                  ? "bg-red-50 border border-red-200 text-red-600"
+                  : "bg-emerald-50 border border-emerald-200 text-emerald-700"
+              )}>
+                {resendResult.error
+                  ? <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                  : <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5" />}
+                {resendResult.error ?? "Credentials email sent successfully."}
+              </div>
             )}
 
             <DropdownMenu.Root>

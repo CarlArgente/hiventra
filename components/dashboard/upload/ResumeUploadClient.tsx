@@ -2,6 +2,7 @@
 
 import { useRef, useState, useCallback, useEffect } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
+import * as Tabs from "@radix-ui/react-tabs";
 import {
   CloudUpload,
   FileText,
@@ -22,11 +23,15 @@ import {
   Info,
   Eye,
   Download,
+  Mail,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { submitUploadBatch, UploadedFile } from "@/app/actions/uploads";
 import { SummaryEntry, getJobUploads, getResumeSignedUrl } from "@/app/actions/storage";
+import { createCandidateAccounts, CreateAccountsResult } from "@/app/actions/candidate-accounts";
+import { getCandidatesForJob } from "@/app/actions/pipeline";
+import type { PipelineCandidate } from "@/components/dashboard/pipeline/pipeline-types";
 
 type FileStatus = "queued" | "uploading" | "parsing" | "scored" | "error";
 
@@ -132,6 +137,13 @@ export default function ResumeUploadClient({ activeJobs }: Props) {
   const [previewEntry, setPreviewEntry] = useState<SummaryEntry | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [accountsLoading, setAccountsLoading] = useState(false);
+  const [accountsResult, setAccountsResult] = useState<CreateAccountsResult | null>(null);
+  const [accountsError, setAccountsError] = useState<string | null>(null);
+  const [showAccountsConfirm, setShowAccountsConfirm] = useState(false);
+  const [showCandidatesModal, setShowCandidatesModal] = useState(false);
+  const [jobCandidates, setJobCandidates] = useState<PipelineCandidate[]>([]);
+  const [candidatesLoading, setCandidatesLoading] = useState(false);
 
   const selectedJob = activeJobs.find((j) => j.id === selectedJobId);
 
@@ -355,8 +367,10 @@ export default function ResumeUploadClient({ activeJobs }: Props) {
     const dbResult = await submitUploadBatch(selectedJobId, payload);
     if ("error" in dbResult && dbResult.error) setSubmitError(dbResult.error);
 
+    const dbResultArray = Array.isArray(dbResult) ? dbResult : [];
+
     // Phase 5: Build summaryData with blob URLs for in-session preview
-    const newSummary: SummaryEntry[] = snapshot.map((qf) => {
+    const newSummary: SummaryEntry[] = snapshot.map((qf, idx) => {
       const r = results[qf.id];
       return {
         id: qf.id,
@@ -369,6 +383,7 @@ export default function ResumeUploadClient({ activeJobs }: Props) {
         aiWeaknesses: r?.aiWeaknesses ?? [],
         errorReason: r?.errorReason ?? null,
         storagePath: r?.storagePath ?? null,
+        candidateId: dbResultArray[idx]?.candidateId ?? null,
         blobUrl: qf.blobUrl,
       };
     });
@@ -380,6 +395,21 @@ export default function ResumeUploadClient({ activeJobs }: Props) {
     setShowUploadZone(false);
   }
 
+  async function handleCreateAccounts() {
+    if (!selectedJobId || accountsLoading) return;
+    setShowAccountsConfirm(false);
+    setAccountsLoading(true);
+    setAccountsResult(null);
+    setAccountsError(null);
+    const res = await createCandidateAccounts(selectedJobId);
+    if ("error" in res) {
+      setAccountsError(res.error);
+    } else {
+      setAccountsResult(res);
+    }
+    setAccountsLoading(false);
+  }
+
   function resetUpload() {
     setQueue((prev) => {
       prev.forEach((f) => URL.revokeObjectURL(f.blobUrl));
@@ -387,6 +417,14 @@ export default function ResumeUploadClient({ activeJobs }: Props) {
     });
     setShowUploadZone(true);
     setSubmitError(null);
+  }
+
+  async function openCandidatesModal() {
+    setShowCandidatesModal(true);
+    setCandidatesLoading(true);
+    const data = await getCandidatesForJob(selectedJobId);
+    setJobCandidates(data);
+    setCandidatesLoading(false);
   }
 
   async function openPreview(entry: SummaryEntry) {
@@ -665,109 +703,176 @@ export default function ResumeUploadClient({ activeJobs }: Props) {
                 </div>
               </div>
 
-              {/* Scored files */}
-              {summaryScored.length > 0 && (
+              {/* Scored / Failed tabs */}
+              {(summaryScored.length > 0 || summaryErrors.length > 0) && (
                 <div className="bg-white rounded-xl border border-slate-100 shadow-[0_4px_20px_-2px_rgba(79,70,229,0.08)] overflow-hidden">
-                  <div className="px-5 py-3 border-b border-slate-100 flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-indigo-500" />
-                    <span className="text-sm font-semibold text-slate-700">AI Scoring Results</span>
-                  </div>
-                  <div className="divide-y divide-slate-50">
-                    {summaryScored.map((e) => (
-                      <div key={e.id} className="px-4 py-3 space-y-2">
-                        <div className="flex items-center gap-3">
-                          <FileIcon type={e.fileType} />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-slate-700 truncate">{e.filename}</p>
-                            {e.aiSummary && (
-                              <p className="text-xs text-slate-500 mt-0.5 truncate">{e.aiSummary}</p>
-                            )}
+                  <Tabs.Root defaultValue="passed">
+                    <div className="px-5 pt-4 border-b border-slate-100">
+                      <Tabs.List className="flex gap-1">
+                        <Tabs.Trigger
+                          value="passed"
+                          className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-t-lg border-b-2 border-transparent text-slate-500 hover:text-slate-700 data-[state=active]:border-indigo-500 data-[state=active]:text-indigo-600 transition-colors"
+                        >
+                          <Sparkles className="w-3.5 h-3.5" />
+                          Passed
+                          <span className="ml-1 px-1.5 py-0.5 rounded-full text-xs bg-emerald-100 text-emerald-700 font-bold">
+                            {summaryScored.length}
+                          </span>
+                        </Tabs.Trigger>
+                        <Tabs.Trigger
+                          value="failed"
+                          className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-t-lg border-b-2 border-transparent text-slate-500 hover:text-slate-700 data-[state=active]:border-red-500 data-[state=active]:text-red-600 transition-colors"
+                        >
+                          <AlertCircle className="w-3.5 h-3.5" />
+                          Failed
+                          <span className="ml-1 px-1.5 py-0.5 rounded-full text-xs bg-red-100 text-red-700 font-bold">
+                            {summaryErrors.length}
+                          </span>
+                        </Tabs.Trigger>
+                      </Tabs.List>
+                    </div>
+
+                    <Tabs.Content value="passed">
+                      <div className="divide-y divide-slate-50">
+                        {summaryScored.length === 0 ? (
+                          <p className="px-5 py-8 text-center text-sm text-slate-400">No passing resumes.</p>
+                        ) : summaryScored.map((e) => (
+                          <div key={e.id} className="px-4 py-3 space-y-2">
+                            <div className="flex items-center gap-3">
+                              <FileIcon type={e.fileType} />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-slate-700 truncate">{e.filename}</p>
+                                {e.aiSummary && (
+                                  <p className="text-xs text-slate-500 mt-0.5 truncate">{e.aiSummary}</p>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-between gap-2 pl-12">
+                              <StatusBadge status={e.status} score={e.aiScore} />
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                <button
+                                  onClick={() => openPreview(e)}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 text-xs font-semibold hover:bg-slate-50 transition-colors"
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                  Preview
+                                </button>
+                                <button
+                                  onClick={() => setDetailEntry(e)}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-indigo-100 bg-indigo-50 text-indigo-600 text-xs font-semibold hover:bg-indigo-100 transition-colors"
+                                >
+                                  <Info className="w-3.5 h-3.5" />
+                                  Summary
+                                </button>
+                                {e.candidateId && (
+                                  <a
+                                    href={`/candidates/${e.candidateId}`}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-violet-100 bg-violet-50 text-violet-600 text-xs font-semibold hover:bg-violet-100 transition-colors"
+                                  >
+                                    <Users className="w-3.5 h-3.5" />
+                                    Profile
+                                  </a>
+                                )}
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex items-center justify-between gap-2 pl-12">
-                          <StatusBadge status={e.status} score={e.aiScore} />
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            <button
-                              onClick={() => openPreview(e)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 text-xs font-semibold hover:bg-slate-50 transition-colors"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                              Preview
-                            </button>
-                            <button
-                              onClick={() => setDetailEntry(e)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-indigo-100 bg-indigo-50 text-indigo-600 text-xs font-semibold hover:bg-indigo-100 transition-colors"
-                            >
-                              <Info className="w-3.5 h-3.5" />
-                              Details
-                            </button>
-                          </div>
-                        </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    </Tabs.Content>
+
+                    <Tabs.Content value="failed">
+                      <div className="divide-y divide-slate-50">
+                        {summaryErrors.length === 0 ? (
+                          <p className="px-5 py-8 text-center text-sm text-slate-400">No failed resumes.</p>
+                        ) : summaryErrors.map((e) => (
+                          <div key={e.id} className="px-4 py-3 space-y-2">
+                            <div className="flex items-center gap-3">
+                              <FileIcon type={e.fileType} />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-slate-700 truncate">{e.filename}</p>
+                                {e.aiSummary && (
+                                  <p className="text-xs text-slate-500 mt-0.5 truncate">{e.aiSummary}</p>
+                                )}
+                                <p className="text-xs text-red-500 mt-0.5 truncate">{e.errorReason}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-between gap-2 pl-12">
+                              {e.aiScore !== null ? (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 text-red-600 whitespace-nowrap">
+                                  <AlertCircle className="w-3 h-3" />
+                                  {e.aiScore}/100
+                                </span>
+                              ) : <span />}
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                <button
+                                  onClick={() => openPreview(e)}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 text-xs font-semibold hover:bg-slate-50 transition-colors"
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                  Preview
+                                </button>
+                                <button
+                                  onClick={() => setDetailEntry(e)}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-100 bg-red-50 text-red-600 text-xs font-semibold hover:bg-red-100 transition-colors"
+                                >
+                                  <Info className="w-3.5 h-3.5" />
+                                  Details
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </Tabs.Content>
+                  </Tabs.Root>
                 </div>
               )}
 
-              {/* Failed files */}
-              {summaryErrors.length > 0 && (
-                <div className="bg-white rounded-xl border border-red-100 shadow-[0_4px_20px_-2px_rgba(79,70,229,0.08)] overflow-hidden">
-                  <div className="px-5 py-3 border-b border-red-50 flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-red-500" />
-                    <span className="text-sm font-semibold text-slate-700">Failed Resumes</span>
-                  </div>
-                  <div className="divide-y divide-slate-50">
-                    {summaryErrors.map((e) => (
-                      <div key={e.id} className="px-4 py-3 space-y-2">
-                        <div className="flex items-center gap-3">
-                          <FileIcon type={e.fileType} />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-slate-700 truncate">{e.filename}</p>
-                            {e.aiSummary && (
-                              <p className="text-xs text-slate-500 mt-0.5 truncate">{e.aiSummary}</p>
-                            )}
-                            <p className="text-xs text-red-500 mt-0.5 truncate">{e.errorReason}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between gap-2 pl-12">
-                          {e.aiScore !== null ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 text-red-600 whitespace-nowrap">
-                              <AlertCircle className="w-3 h-3" />
-                              {e.aiScore}/100
-                            </span>
-                          ) : <span />}
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            <button
-                              onClick={() => openPreview(e)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 text-xs font-semibold hover:bg-slate-50 transition-colors"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                              Preview
-                            </button>
-                            <button
-                              onClick={() => setDetailEntry(e)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-100 bg-red-50 text-red-600 text-xs font-semibold hover:bg-red-100 transition-colors"
-                            >
-                              <Info className="w-3.5 h-3.5" />
-                              Details
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+              {/* Create Accounts result feedback */}
+              {(accountsResult || accountsError) && (
+                <div className={cn(
+                  "flex items-start gap-3 px-4 py-3 rounded-xl border text-sm",
+                  accountsError
+                    ? "bg-red-50 border-red-100 text-red-700"
+                    : "bg-emerald-50 border-emerald-100 text-emerald-700"
+                )}>
+                  {accountsError ? (
+                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  ) : (
+                    <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+                  )}
+                  <div>
+                    {accountsError && <p>{accountsError}</p>}
+                    {accountsResult && (
+                      <>
+                        <p className="font-semibold">
+                          {accountsResult.created} account{accountsResult.created !== 1 ? "s" : ""} created &amp; email{accountsResult.created !== 1 ? "s" : ""} sent
+                          {accountsResult.skipped > 0 && `, ${accountsResult.skipped} already had credentials`}
+                        </p>
+                        {accountsResult.errors.length > 0 && (
+                          <ul className="mt-1 space-y-0.5 text-xs text-red-600">
+                            {accountsResult.errors.map((e, i) => <li key={i}>• {e}</li>)}
+                          </ul>
+                        )}
+                      </>
+                    )}
                   </div>
                 </div>
               )}
 
               {/* CTAs */}
-              <div className="flex items-center gap-3 pt-2">
-                <a
-                  href="/candidates"
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-semibold shadow-[0_4px_14px_0_rgba(79,70,229,0.3)] hover:-translate-y-0.5 transition-all duration-200"
+              <div className="flex flex-wrap items-center gap-3 pt-2">
+                <button
+                  onClick={() => setShowAccountsConfirm(true)}
+                  disabled={accountsLoading || summaryScored.length === 0}
+                  className="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-sm font-semibold shadow-[0_4px_14px_0_rgba(16,185,129,0.25)] hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 transition-all duration-200"
                 >
-                  <Users className="w-4 h-4" />
-                  View Candidates
-                </a>
+                  {accountsLoading ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" />Creating Accounts…</>
+                  ) : (
+                    <><Mail className="w-4 h-4" />Create Accounts &amp; Send Invites</>
+                  )}
+                </button>
                 {!showUploadZone && (
                   <button
                     onClick={resetUpload}
@@ -782,6 +887,160 @@ export default function ResumeUploadClient({ activeJobs }: Props) {
           )}
         </div>
       </div>
+
+      {/* ── Create Accounts confirmation dialog ── */}
+      <Dialog.Root open={showAccountsConfirm} onOpenChange={setShowAccountsConfirm}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-200" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 duration-200 focus:outline-none">
+            <div className="bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-5 flex items-start justify-between">
+              <div>
+                <Dialog.Title className="text-white font-bold text-base">
+                  Create Accounts &amp; Send Invites
+                </Dialog.Title>
+                <Dialog.Description className="text-white/75 text-xs mt-0.5">
+                  Please review before proceeding
+                </Dialog.Description>
+              </div>
+              <Dialog.Close asChild>
+                <button className="text-white/70 hover:text-white transition-colors mt-0.5">
+                  <X className="w-5 h-5" />
+                </button>
+              </Dialog.Close>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="flex items-start gap-3 p-4 rounded-xl bg-emerald-50 border border-emerald-100">
+                <Mail className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                <p className="text-sm text-slate-700 leading-relaxed">
+                  This will create portal accounts for{" "}
+                  <span className="font-semibold text-emerald-700">{summaryScored.length} qualified candidate{summaryScored.length !== 1 ? "s" : ""}</span>{" "}
+                  who passed the AI screening and send each of them a welcome email containing their username, temporary password, and a link to the candidate portal.
+                </p>
+              </div>
+              <ul className="space-y-2 text-sm text-slate-600">
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  Only candidates with a passing score (&ge;75) will receive an account.
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  Candidates who already have credentials will be skipped.
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  Each candidate will be prompted to change their password on first sign-in.
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  Each candidate&apos;s pipeline status will be updated to{" "}
+                  <span className="font-semibold text-indigo-600">Invited</span>.
+                </li>
+              </ul>
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <Dialog.Close asChild>
+                  <button className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-sm font-semibold hover:bg-slate-50 transition-colors">
+                    Cancel
+                  </button>
+                </Dialog.Close>
+                <button
+                  onClick={handleCreateAccounts}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-sm font-semibold shadow-[0_4px_14px_0_rgba(16,185,129,0.25)] hover:opacity-90 transition-all"
+                >
+                  <Mail className="w-4 h-4" />
+                  Yes, Create &amp; Send
+                </button>
+              </div>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+
+      {/* ── View Candidates modal ── */}
+      <Dialog.Root open={showCandidatesModal} onOpenChange={setShowCandidatesModal}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-200" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-xl bg-white rounded-2xl shadow-2xl overflow-hidden data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 duration-200 focus:outline-none">
+            <div className="bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-5 flex items-start justify-between">
+              <div>
+                <Dialog.Title className="text-white font-bold text-base">
+                  Candidates — {selectedJob?.title ?? ""}
+                </Dialog.Title>
+                <Dialog.Description className="text-white/75 text-xs mt-0.5">
+                  {candidatesLoading ? "Loading…" : `${jobCandidates.length} candidate${jobCandidates.length !== 1 ? "s" : ""} for this job`}
+                </Dialog.Description>
+              </div>
+              <Dialog.Close asChild>
+                <button className="text-white/70 hover:text-white transition-colors mt-0.5">
+                  <X className="w-5 h-5" />
+                </button>
+              </Dialog.Close>
+            </div>
+
+            <div className="max-h-[65vh] overflow-y-auto">
+              {candidatesLoading ? (
+                <div className="flex items-center justify-center py-16 gap-3 text-slate-400">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span className="text-sm">Loading candidates…</span>
+                </div>
+              ) : jobCandidates.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-400">
+                  <Users className="w-8 h-8" />
+                  <p className="text-sm">No candidates found for this job yet.</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {jobCandidates.map((c) => {
+                    const initials = (c.full_name ?? "?")
+                      .split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase();
+                    const score = c.ai_score;
+                    const scoreColor = score === null ? "text-slate-400" : score >= 75 ? "text-emerald-600" : "text-red-500";
+                    const stageBg: Record<string, string> = {
+                      uploaded: "bg-slate-100 text-slate-600",
+                      screened: "bg-blue-50 text-blue-600",
+                      invited: "bg-indigo-50 text-indigo-600",
+                      interview_started: "bg-violet-50 text-violet-600",
+                      completed: "bg-amber-50 text-amber-600",
+                      recommended: "bg-emerald-50 text-emerald-700",
+                      hired: "bg-emerald-100 text-emerald-800",
+                      rejected: "bg-red-50 text-red-600",
+                    };
+                    return (
+                      <div key={c.id} className="px-5 py-4 flex items-center gap-4 hover:bg-slate-50 transition-colors">
+                        <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-xs font-bold flex-shrink-0">
+                          {initials}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-slate-800 truncate">{c.full_name ?? "—"}</p>
+                          <p className="text-xs text-slate-500 truncate">{c.email ?? "—"}</p>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {score !== null && (
+                            <span className={cn("text-xs font-bold tabular-nums", scoreColor)}>
+                              {score}/100
+                            </span>
+                          )}
+                          {c.stage && (
+                            <span className={cn("px-2 py-0.5 rounded-full text-xs font-medium", stageBg[c.stage] ?? "bg-slate-100 text-slate-600")}>
+                              {c.stage.replace(/_/g, " ")}
+                            </span>
+                          )}
+                          <a
+                            href={`/candidates/${c.id}`}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-600 text-xs font-semibold hover:bg-indigo-100 transition-colors"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            Profile
+                          </a>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
 
       {/* ── Detail dialog ── */}
       <Dialog.Root open={!!detailEntry} onOpenChange={(open) => !open && setDetailEntry(null)}>

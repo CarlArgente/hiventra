@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { useMobileNav } from "./DashboardShell";
+import { useMobileNav, useOnboarding } from "./DashboardShell";
 
 const navGroups = [
   {
@@ -51,6 +51,7 @@ const navGroups = [
 
 function SidenavInner({ collapsed, onLinkClick }: { collapsed: boolean; onLinkClick?: () => void }) {
   const pathname = usePathname();
+  const { onboardingHighlight } = useOnboarding();
 
   return (
     <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-6">
@@ -65,22 +66,29 @@ function SidenavInner({ collapsed, onLinkClick }: { collapsed: boolean; onLinkCl
             {group.items.map((item) => {
               const Icon = item.icon;
               const active = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
+              const highlighted = onboardingHighlight === item.href;
               return (
-                <li key={item.href}>
+                <li key={item.href} className={cn("relative", highlighted && "z-[45]")}>
                   <Link
                     href={item.href}
                     title={collapsed ? item.label : undefined}
                     onClick={onLinkClick}
+                    data-onboarding={item.href}
                     className={cn(
                       "flex items-center gap-3 px-2 py-2 rounded-lg text-sm font-medium transition-all duration-150",
                       collapsed && "justify-center",
-                      active
+                      highlighted
+                        ? "bg-indigo-500 text-white ring-2 ring-indigo-400 ring-offset-2 ring-offset-slate-900"
+                        : active
                         ? "bg-indigo-600/20 text-indigo-400 border border-indigo-500/30"
                         : "text-slate-400 hover:text-white hover:bg-slate-800"
                     )}
                   >
                     <Icon className="w-4 h-4 shrink-0" />
-                    {!collapsed && <span>{item.label}</span>}
+                    {!collapsed && <span className="flex-1">{item.label}</span>}
+                    {highlighted && !collapsed && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse flex-shrink-0" />
+                    )}
                   </Link>
                 </li>
               );
@@ -108,7 +116,7 @@ export default function Sidenav() {
       {/* ── Desktop sidebar ── */}
       <aside
         className={cn(
-          "relative hidden lg:flex flex-col bg-slate-900 border-r border-slate-800 transition-all duration-300 shrink-0",
+          "relative hidden lg:flex flex-col bg-slate-900 border-r border-slate-800 transition-all duration-300 shrink-0 z-[41]",
           collapsed ? "w-16" : "w-60"
         )}
       >

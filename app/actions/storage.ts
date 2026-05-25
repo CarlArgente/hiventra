@@ -13,7 +13,8 @@ export interface SummaryEntry {
   aiWeaknesses: string[];
   errorReason: string | null;
   storagePath: string | null;
-  blobUrl?: string; // only present for in-session fresh uploads
+  candidateId: string | null;
+  blobUrl?: string;
 }
 
 export async function getJobUploads(jobId: string): Promise<SummaryEntry[]> {
@@ -22,7 +23,7 @@ export async function getJobUploads(jobId: string): Promise<SummaryEntry[]> {
 
   const { data } = await supabase
     .from("resume_uploads")
-    .select("id, filename, file_type, status, ai_score, ai_summary, ai_strengths, ai_weaknesses, error_reason, storage_path")
+    .select("id, filename, file_type, status, ai_score, ai_summary, ai_strengths, ai_weaknesses, error_reason, storage_path, candidate_id")
     .eq("job_id", jobId)
     .in("status", ["scored", "error"])
     .order("created_at", { ascending: false })
@@ -41,6 +42,7 @@ export async function getJobUploads(jobId: string): Promise<SummaryEntry[]> {
     aiWeaknesses: r.ai_weaknesses ?? [],
     errorReason: r.error_reason,
     storagePath: r.storage_path ?? null,
+    candidateId: r.candidate_id ?? null,
   }));
 }
 

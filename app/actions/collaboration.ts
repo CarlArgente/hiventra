@@ -7,6 +7,7 @@ export interface CollaborationJobSummary {
   title: string;
   company: string;
   department: string | null;
+  status: string;
 }
 
 export interface CollaborationJob {
@@ -33,7 +34,7 @@ export async function getJobsForCollaboration(): Promise<CollaborationJobSummary
 
   const { data } = await supabase
     .from("jobs")
-    .select("id, title, company, department")
+    .select("id, title, company, department, status")
     .order("created_at", { ascending: false });
 
   return (data as CollaborationJobSummary[]) ?? [];

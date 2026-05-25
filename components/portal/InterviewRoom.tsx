@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Mic, Camera, CheckCircle2, Clock, ChevronRight, Square } from "lucide-react";
+import * as faceapi from "face-api.js";
 import { SimliClient, generateSimliSessionToken, generateIceServers } from "simli-client";
 import {
   startInterview,
@@ -161,6 +162,14 @@ export default function InterviewRoom({ interview }: { interview: InterviewData 
   const [simliConnected, setSimliConnected] = useState(false);
   const simliConnectedRef = useRef(false);
 
+  // Camera preview + face detection (preCheck phase)
+  type FaceStatus = "checking" | "detected" | "not_detected" | "unsupported";
+  const [faceStatus, setFaceStatus] = useState<FaceStatus>("checking");
+  const [faceConfirmed, setFaceConfirmed] = useState(false);
+  const camPreviewRef = useRef<HTMLVideoElement>(null);
+  const camStreamRef = useRef<MediaStream | null>(null);
+  const faceIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const recTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const mediaRef = useRef<MediaRecorder | null>(null);
@@ -210,6 +219,48 @@ export default function InterviewRoom({ interview }: { interview: InterviewData 
     }
   }, [mode]);
 
+  // Camera preview + face detection during preCheck
+  useEffect(() => {
+    if (phase !== "preCheck" || mode !== "video") return;
+    let active = true;
+
+    (async () => {
+      try {
+        // Load TinyFaceDetector model (served locally from /public/models/)
+        if (!faceapi.nets.tinyFaceDetector.isLoaded) {
+          await faceapi.nets.tinyFaceDetector.loadFromUri("/models");
+        }
+
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        if (!active) { stream.getTracks().forEach((t) => t.stop()); return; }
+        camStreamRef.current = stream;
+        if (camPreviewRef.current) camPreviewRef.current.srcObject = stream;
+
+        // Wait a frame for the video element to have data before detecting
+        await new Promise((r) => setTimeout(r, 500));
+
+        faceIntervalRef.current = setInterval(async () => {
+          if (!camPreviewRef.current || !active) return;
+          if (camPreviewRef.current.readyState < 2) return;
+          try {
+            const detection = await faceapi.detectSingleFace(
+              camPreviewRef.current,
+              new faceapi.TinyFaceDetectorOptions({ scoreThreshold: 0.4 })
+            );
+            if (active) setFaceStatus(detection ? "detected" : "not_detected");
+          } catch { /* ignore mid-frame errors */ }
+        }, 800);
+      } catch { /* permission denied — camStatus already reflects this */ }
+    })();
+
+    return () => {
+      active = false;
+      if (faceIntervalRef.current) { clearInterval(faceIntervalRef.current); faceIntervalRef.current = null; }
+      camStreamRef.current?.getTracks().forEach((t) => t.stop());
+      camStreamRef.current = null;
+    };
+  }, [phase, mode, camStatus]);
+
   useEffect(() => {
     if (phase !== "active") return;
     timerRef.current = setInterval(() => setElapsed((s) => s + 1), 1000);
@@ -238,62 +289,73 @@ export default function InterviewRoom({ interview }: { interview: InterviewData 
   // Move Simli video element into its container when the active video layout mounts
   // Also re-runs when simliConnected changes, in case Simli connected after the phase transition
   useEffect(() => {
-    if (phase !== "active" || mode !== "video") return;
+    if ((phase !== "active" && phase !== "welcome") || mode !== "video") return;
     if (!simliContainerRef.current || !simliVideoEl.current) return;
     const container = simliContainerRef.current;
     const video = simliVideoEl.current;
-    video.style.cssText = "width:100%;height:100%;object-fit:cover;position:absolute;inset:0;";
+    video.style.cssText = "width:100%;height:100%;object-fit:contain;position:absolute;inset:0;background:#020617;";
     container.appendChild(video);
     return () => {
-      // Stash back to body so the element (and WebRTC stream) survives
       video.style.cssText = "position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;";
       document.body.appendChild(video);
     };
   }, [phase, mode, simliConnected]);
 
-  const initSimli = async () => {
-    if (!SIMLI_API_KEY || simliRef.current) return;
-    try {
-      // Create elements imperatively so they persist across React phase transitions
-      const video = document.createElement("video");
-      video.autoplay = true;
-      video.muted = true;
-      (video as HTMLVideoElement & { playsInline: boolean }).playsInline = true;
-      video.style.cssText = "position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;";
-      document.body.appendChild(video);
+  const initSimli = (): Promise<void> => {
+    if (!SIMLI_API_KEY || simliRef.current) return Promise.resolve();
+    return new Promise<void>((resolve) => {
+      // Fallback: give up waiting after 10s and proceed anyway
+      const timeout = setTimeout(resolve, 10000);
 
-      const audio = document.createElement("audio");
-      audio.autoplay = true;
-      document.body.appendChild(audio);
+      (async () => {
+        try {
+          const video = document.createElement("video");
+          video.autoplay = true;
+          video.muted = true;
+          (video as HTMLVideoElement & { playsInline: boolean }).playsInline = true;
+          video.style.cssText = "position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;";
+          document.body.appendChild(video);
 
-      simliVideoEl.current = video;
-      simliAudioEl.current = audio;
+          const audio = document.createElement("audio");
+          audio.autoplay = true;
+          document.body.appendChild(audio);
 
-      const [tokenData, iceServers] = await Promise.all([
-        generateSimliSessionToken({
-          apiKey: SIMLI_API_KEY,
-          config: {
-            faceId: SIMLI_FACE_ID,
-            handleSilence: true,
-            maxSessionLength: 3600,
-            maxIdleTime: 600,
-            model: "fasttalk",
-          },
-        }),
-        generateIceServers(SIMLI_API_KEY),
-      ]);
+          simliVideoEl.current = video;
+          simliAudioEl.current = audio;
 
-      const client = new SimliClient(tokenData.session_token, video, audio, iceServers);
-      simliRef.current = client;
+          const [tokenData, iceServers] = await Promise.all([
+            generateSimliSessionToken({
+              apiKey: SIMLI_API_KEY,
+              config: {
+                faceId: SIMLI_FACE_ID,
+                handleSilence: true,
+                maxSessionLength: 3600,
+                maxIdleTime: 600,
+                model: "fasttalk",
+              },
+            }),
+            generateIceServers(SIMLI_API_KEY),
+          ]);
 
-      client.on("start", () => { simliConnectedRef.current = true; setSimliConnected(true); });
-      client.on("speaking", () => setCarlSpeaking(true));
-      client.on("silent", () => setCarlSpeaking(false));
+          const client = new SimliClient(tokenData.session_token, video, audio, iceServers);
+          simliRef.current = client;
 
-      await client.start();
-    } catch {
-      // Simli unavailable — video mode falls back to avatar placeholder + audio
-    }
+          client.on("start", () => {
+            simliConnectedRef.current = true;
+            setSimliConnected(true);
+            clearTimeout(timeout);
+            resolve();
+          });
+          client.on("speaking", () => setCarlSpeaking(true));
+          client.on("silent", () => setCarlSpeaking(false));
+
+          await client.start();
+        } catch {
+          clearTimeout(timeout);
+          resolve();
+        }
+      })();
+    });
   };
 
   const handleResume = async () => {
@@ -460,11 +522,12 @@ export default function InterviewRoom({ interview }: { interview: InterviewData 
     await startInterview(interview.id, finalQuestions);
     setPhase("welcome");
 
-    // Start Simli connection in background while welcome plays
-    if (mode === "video") initSimli();
-
     const welcomeText = `Hi ${firstName}! Welcome to your interview for the ${job.title} role at ${job.company}. I'm Carl, your AI interviewer. I'll ask you ${finalQuestions.length} questions — take your time with each answer, there's no rush. Let's get started!`;
     setWelcomeMsg(welcomeText);
+
+    // In video mode, wait for Simli to connect before speaking so audio and avatar are in sync
+    if (mode === "video") await initSimli();
+
     if (mode !== "text") {
       await speakText(welcomeText);
     } else {
@@ -674,13 +737,53 @@ export default function InterviewRoom({ interview }: { interview: InterviewData 
                 <DeviceRow label="Microphone" status={micStatus} />
                 {mode === "video" && <DeviceRow label="Camera" status={camStatus} />}
               </div>
+
+              {mode === "video" && camStatus === "ok" && (
+                <div className="mt-4">
+                  <div className="relative rounded-xl overflow-hidden bg-slate-900 aspect-video">
+                    <video
+                      ref={camPreviewRef}
+                      autoPlay
+                      muted
+                      playsInline
+                      className="w-full h-full object-cover scale-x-[-1]"
+                    />
+                    <div className="absolute bottom-2 left-2 right-2 flex items-end justify-between gap-2">
+                      <div>
+                        {faceStatus === "checking" && (
+                          <span className="inline-flex items-center gap-1.5 text-xs text-slate-400 bg-black/70 px-2.5 py-1 rounded-lg backdrop-blur-sm">
+                            <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-pulse" />
+                            Checking for face…
+                          </span>
+                        )}
+                        {faceStatus === "detected" && (
+                          <span className="inline-flex items-center gap-1.5 text-xs text-emerald-400 bg-black/70 px-2.5 py-1 rounded-lg backdrop-blur-sm">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                            Person detected
+                          </span>
+                        )}
+                        {faceStatus === "not_detected" && (
+                          <span className="inline-flex items-center gap-1.5 text-xs text-amber-400 bg-black/70 px-2.5 py-1 rounded-lg backdrop-blur-sm">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                            No face detected — adjust your position
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
           <button
             onClick={handleStart}
-            disabled={phase === "starting"}
-            className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 disabled:cursor-wait text-white font-bold py-4 rounded-2xl text-base transition-colors shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2"
+            disabled={
+              phase === "starting" ||
+              (mode === "video" && camStatus === "ok" &&
+                (faceStatus === "not_detected"))
+            }
+            className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-4 rounded-2xl text-base transition-colors shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2"
           >
             {phase === "starting" ? (
               <>
@@ -747,6 +850,36 @@ export default function InterviewRoom({ interview }: { interview: InterviewData 
 
   // --- WELCOME ---
   if (phase === "welcome") {
+    if (mode === "video") {
+      return (
+        <div className="fixed inset-0 z-50 bg-slate-950 flex flex-col overflow-hidden">
+          {/* Carl video panel */}
+          <div className="relative flex-1 bg-slate-950 overflow-hidden">
+            <div ref={simliContainerRef} className="absolute inset-0" />
+            {!simliConnected && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 gap-3">
+                <CarlAvatar size="lg" speaking={carlSpeaking} />
+                <p className="text-slate-500 text-xs">Connecting avatar…</p>
+              </div>
+            )}
+            <div className="absolute top-3 left-3 z-10 bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1.5 flex items-center gap-2">
+              <span className={`w-2 h-2 rounded-full flex-shrink-0 ${carlSpeaking ? "bg-green-400 animate-pulse" : "bg-slate-500"}`} />
+              <span className="text-white text-xs font-medium">{carlSpeaking ? "Carl is speaking…" : "Carl · AI Interviewer"}</span>
+            </div>
+          </div>
+          {/* Caption bar */}
+          <div className="flex-shrink-0 bg-slate-900 border-t border-slate-800 px-6 py-5 text-center">
+            <div className="bg-slate-800 rounded-2xl p-4 shadow-sm mb-3 max-w-lg mx-auto">
+              <p className="text-white text-sm leading-relaxed italic">&ldquo;{welcomeMsg}&rdquo;</p>
+            </div>
+            <p className="text-slate-500 text-sm">
+              {carlSpeaking ? "Carl is speaking…" : "Preparing your first question…"}
+            </p>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="fixed inset-0 z-50 bg-slate-900 flex items-center justify-center px-4">
         <div className="w-full max-w-md text-center">
@@ -848,7 +981,7 @@ export default function InterviewRoom({ interview }: { interview: InterviewData 
         <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
 
           {/* Carl avatar panel */}
-          <div className="relative lg:flex-1 h-52 sm:h-72 lg:h-auto bg-slate-950 overflow-hidden flex-shrink-0">
+          <div className="relative lg:flex-1 h-[55vh] lg:h-auto bg-slate-950 overflow-hidden flex-shrink-0">
             {/* Simli video is appended here imperatively via useEffect */}
             <div ref={simliContainerRef} className="absolute inset-0" />
 

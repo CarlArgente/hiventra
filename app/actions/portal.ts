@@ -219,6 +219,31 @@ export async function saveDocument(data: {
   return { success: true };
 }
 
+export async function changePassword(
+  _prev: { error?: string; success?: boolean } | null,
+  formData: FormData
+): Promise<{ error?: string; success?: boolean }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const newPass = formData.get("new_password") as string;
+  const confirm = formData.get("confirm_password") as string;
+
+  if (!newPass || newPass.length < 8)
+    return { error: "Password must be at least 8 characters" };
+  if (newPass !== confirm) return { error: "Passwords do not match" };
+
+  const { error } = await supabase.auth.updateUser({ password: newPass });
+  if (error) return { error: error.message };
+
+  await supabase.rpc("clear_must_change_password");
+
+  return { success: true };
+}
+
 export async function deleteDocument(id: string, storagePath: string | null) {
   const supabase = await createClient();
   await supabase.auth.getUser();
