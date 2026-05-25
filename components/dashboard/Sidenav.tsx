@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -8,6 +8,7 @@ import {
   Upload,
   Users,
   Bot,
+  MessageCircle,
   Users2,
   BarChart3,
   ShieldCheck,
@@ -25,24 +26,25 @@ const navGroups = [
     label: "Main",
     items: [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { label: "Job Management", href: "/dashboard/jobs", icon: Briefcase },
-      { label: "Resume Upload", href: "/dashboard/upload", icon: Upload },
-      { label: "Candidate Pipeline", href: "/dashboard/pipeline", icon: Users },
-      { label: "Carl Config", href: "/dashboard/carl-config", icon: Bot },
+      { label: "Job Management", href: "/jobs", icon: Briefcase },
+      { label: "Resume Upload", href: "/upload", icon: Upload },
+      { label: "Candidate Pipeline", href: "/pipeline", icon: Users },
+      { label: "Carl Config", href: "/carl-config", icon: Bot },
+      { label: "Talk with Carl", href: "/talk-with-carl", icon: MessageCircle },
     ],
   },
   {
     label: "Team",
     items: [
-      { label: "Collaboration", href: "/dashboard/collaboration", icon: Users2 },
-      { label: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
+      { label: "Collaboration", href: "/collaboration", icon: Users2 },
+      { label: "Analytics", href: "/analytics", icon: BarChart3 },
     ],
   },
   {
     label: "Admin",
     items: [
-      { label: "AI Audit", href: "/dashboard/audit", icon: ShieldCheck },
-      { label: "Settings", href: "/dashboard/settings", icon: Settings },
+      { label: "AI Audit", href: "/audit", icon: ShieldCheck },
+      { label: "Settings", href: "/settings", icon: Settings },
     ],
   },
 ];
@@ -114,7 +116,7 @@ export default function Sidenav() {
         <SidenavInner collapsed={collapsed} />
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="absolute -right-3 top-20 w-6 h-6 bg-slate-700 border border-slate-600 rounded-full flex items-center justify-center text-slate-400 hover:text-white transition-colors z-10"
+          className="absolute -right-3 top-4 w-6 h-6 bg-slate-700 border border-slate-600 rounded-full flex items-center justify-center text-slate-400 hover:text-white transition-colors z-10"
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {collapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}

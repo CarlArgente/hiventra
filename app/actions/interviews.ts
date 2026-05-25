@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -70,7 +70,7 @@ export async function startInterview(id: string, questions: string[]) {
   }
 
   revalidatePath("/portal/interview");
-  revalidatePath("/dashboard/pipeline");
+  revalidatePath("/pipeline");
   return { success: true };
 }
 
@@ -123,7 +123,7 @@ export async function completeInterview(id: string) {
 
   revalidatePath("/portal/interview");
   revalidatePath("/portal");
-  revalidatePath("/dashboard/pipeline");
-  revalidatePath("/dashboard/candidates");
+  revalidatePath("/pipeline");
+  revalidatePath("/candidates");
   return { success: true };
 }

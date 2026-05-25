@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useRef, useState, useCallback, useEffect } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -425,7 +425,7 @@ export default function ResumeUploadClient({ activeJobs }: Props) {
           </p>
         </div>
         <a
-          href="/dashboard/jobs"
+          href="/jobs"
           className="mt-2 inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-semibold shadow-[0_4px_14px_0_rgba(79,70,229,0.3)] hover:-translate-y-0.5 transition-all duration-200"
         >
           Create Job
@@ -762,7 +762,7 @@ export default function ResumeUploadClient({ activeJobs }: Props) {
               {/* CTAs */}
               <div className="flex items-center gap-3 pt-2">
                 <a
-                  href="/dashboard/candidates"
+                  href="/candidates"
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-semibold shadow-[0_4px_14px_0_rgba(79,70,229,0.3)] hover:-translate-y-0.5 transition-all duration-200"
                 >
                   <Users className="w-4 h-4" />

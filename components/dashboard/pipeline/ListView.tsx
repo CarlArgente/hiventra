@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import {
@@ -168,7 +168,7 @@ export default function ListView({
             {sorted.map((c) => (
               <tr
                 key={c.id}
-                onClick={() => (window.location.href = `/dashboard/candidates/${c.id}`)}
+                onClick={() => (window.location.href = `/candidates/${c.id}`)}
                 className={cn(
                   "hover:bg-slate-50/80 cursor-pointer transition-colors",
                   selected.has(c.id) && "bg-indigo-50/40"
@@ -254,7 +254,7 @@ export default function ListView({
                 <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center justify-end gap-2">
                     <a
-                      href={`/dashboard/candidates/${c.id}`}
+                      href={`/candidates/${c.id}`}
                       className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors whitespace-nowrap"
                     >
                       <ExternalLink className="w-3 h-3" />

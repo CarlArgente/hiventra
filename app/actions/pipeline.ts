@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
@@ -71,7 +71,7 @@ export async function updateCandidateStage(candidateId: string, stage: PipelineS
     .eq("id", candidateId);
 
   if (error) return { error: error.message };
-  revalidatePath("/dashboard/pipeline");
+  revalidatePath("/pipeline");
   return { success: true };
 }
 
@@ -85,6 +85,6 @@ export async function bulkUpdateStage(candidateIds: string[], stage: PipelineSta
     .in("id", candidateIds);
 
   if (error) return { error: error.message };
-  revalidatePath("/dashboard/pipeline");
+  revalidatePath("/pipeline");
   return { success: true };
 }

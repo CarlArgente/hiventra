@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
@@ -165,7 +165,7 @@ export default function PipelineClient({ jobs, initialJobId, initialCandidates }
             value={selectedJobId}
             onChange={(e) => {
               setSelectedJobId(e.target.value);
-              router.push(`/dashboard/pipeline?job=${e.target.value}`, { scroll: false });
+              router.push(`/pipeline?job=${e.target.value}`, { scroll: false });
             }}
             className="w-full appearance-none bg-white border border-slate-200 rounded-lg px-4 py-2 pr-10 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
@@ -213,7 +213,7 @@ export default function PipelineClient({ jobs, initialJobId, initialCandidates }
         )}
 
         <a
-          href="/dashboard/jobs"
+          href="/jobs"
           className="ml-auto text-xs text-indigo-600 hover:underline font-medium"
         >
           Edit Job
@@ -330,7 +330,7 @@ export default function PipelineClient({ jobs, initialJobId, initialCandidates }
             <Briefcase className="w-10 h-10" />
             <p className="text-sm">No jobs found. Create a job first.</p>
             <a
-              href="/dashboard/jobs"
+              href="/jobs"
               className="text-sm text-indigo-600 hover:underline font-medium"
             >
               Go to Jobs

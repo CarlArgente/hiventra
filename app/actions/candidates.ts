@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
@@ -179,7 +179,7 @@ export async function addCandidateNote(
   });
 
   if (error) return { error: error.message };
-  revalidatePath(`/dashboard/candidates/${candidateId}`);
+  revalidatePath(`/candidates/${candidateId}`);
   return { success: true };
 }
 
@@ -242,8 +242,8 @@ export async function updateCandidateStageFromProfile(
     }
   }
 
-  revalidatePath(`/dashboard/candidates/${candidateId}`);
-  revalidatePath("/dashboard/pipeline");
+  revalidatePath(`/candidates/${candidateId}`);
+  revalidatePath("/pipeline");
   return { success: true };
 }
 
@@ -260,8 +260,8 @@ export async function updateCandidateInfo(
     .eq("id", candidateId);
 
   if (error) return { error: error.message };
-  revalidatePath(`/dashboard/candidates/${candidateId}`);
-  revalidatePath("/dashboard/pipeline");
+  revalidatePath(`/candidates/${candidateId}`);
+  revalidatePath("/pipeline");
   return { success: true };
 }
 
@@ -332,7 +332,7 @@ export async function sendInterviewInvite(
     else console.log("[Resend sent]", emailData?.id, "→", candidate.email);
   }
 
-  revalidatePath(`/dashboard/candidates/${candidateId}`);
-  revalidatePath("/dashboard/pipeline");
+  revalidatePath(`/candidates/${candidateId}`);
+  revalidatePath("/pipeline");
   return { success: true };
 }

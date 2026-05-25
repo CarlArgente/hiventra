@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -71,9 +71,9 @@ export async function saveCarlConfig(
     .eq("job_id", jobId)
     .in("status", ["pending", "invited"]);
 
-  revalidatePath("/dashboard/carl-config");
-  revalidatePath("/dashboard/jobs");
-  revalidatePath("/dashboard/pipeline");
+  revalidatePath("/carl-config");
+  revalidatePath("/jobs");
+  revalidatePath("/pipeline");
   return { success: true };
 }
 
@@ -85,7 +85,7 @@ export async function createJob(payload: JobPayload) {
   const { error } = await supabase.from("jobs").insert({ ...payload, created_by: user.id });
   if (error) return { error: error.message };
 
-  revalidatePath("/dashboard/jobs");
+  revalidatePath("/jobs");
   return { success: true };
 }
 
@@ -102,8 +102,8 @@ export async function updateJob(id: string, payload: JobPayload) {
     .eq("job_id", id)
     .in("status", ["pending", "invited"]);
 
-  revalidatePath("/dashboard/jobs");
-  revalidatePath("/dashboard/pipeline");
+  revalidatePath("/jobs");
+  revalidatePath("/pipeline");
   return { success: true };
 }
 
@@ -111,7 +111,7 @@ export async function updateJobStatus(id: string, status: string) {
   const supabase = await createClient();
   await supabase.auth.getUser();
   await supabase.from("jobs").update({ status }).eq("id", id);
-  revalidatePath("/dashboard/jobs");
+  revalidatePath("/jobs");
 }
 
 export async function duplicateJob(id: string) {
@@ -125,5 +125,5 @@ export async function duplicateJob(id: string) {
     title: `${rest.title} (Copy)`,
     status: "draft",
   });
-  revalidatePath("/dashboard/jobs");
+  revalidatePath("/jobs");
 }

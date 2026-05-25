@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
@@ -205,7 +205,7 @@ Rules:
       ai_justification: parsed.summary,
     });
 
-    revalidatePath(`/dashboard/candidates/${candidateId}/report`);
+    revalidatePath(`/candidates/${candidateId}/report`);
 
     return {
       score: parsed.score as number,

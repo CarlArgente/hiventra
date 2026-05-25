@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
@@ -207,7 +207,7 @@ export async function markAlertReviewed(id: string): Promise<{ error?: string }>
     .eq("id", id);
 
   if (error) return { error: error.message };
-  revalidatePath("/dashboard/audit");
+  revalidatePath("/audit");
   return { error: undefined };
 }
 

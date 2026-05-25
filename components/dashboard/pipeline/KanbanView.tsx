@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useId } from "react";
 import {
@@ -185,7 +185,7 @@ function CandidateCard({
             </span>
             {candidate.has_intelligence_report ? (
               <a
-                href={`/dashboard/candidates/${candidate.id}/report`}
+                href={`/candidates/${candidate.id}/report`}
                 onClick={(e) => e.stopPropagation()}
                 className="inline-flex items-center gap-0.5 text-[10px] text-indigo-600 hover:text-indigo-800 font-semibold"
               >
@@ -194,7 +194,7 @@ function CandidateCard({
               </a>
             ) : (
               <a
-                href={`/dashboard/candidates/${candidate.id}`}
+                href={`/candidates/${candidate.id}`}
                 onClick={(e) => e.stopPropagation()}
                 className="inline-flex items-center gap-0.5 text-[10px] text-indigo-600 hover:text-indigo-800 font-semibold"
               >

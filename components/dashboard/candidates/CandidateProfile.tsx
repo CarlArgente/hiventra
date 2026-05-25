@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -437,7 +437,7 @@ export default function CandidateProfile({
     primaryAction = {
       label: "View Intelligence Report",
       icon: <BarChart3 className="w-4 h-4" />,
-      action: () => router.push(`/dashboard/candidates/${candidate.id}/report`),
+      action: () => router.push(`/candidates/${candidate.id}/report`),
     };
   }
 
@@ -447,7 +447,7 @@ export default function CandidateProfile({
       <div className="px-4 sm:px-6 py-3 bg-white border-b border-slate-100">
         <nav className="flex items-center gap-2 text-sm text-slate-500">
           <Link
-            href="/dashboard/jobs"
+            href="/jobs"
             className="hover:text-indigo-600 transition-colors"
           >
             Jobs
@@ -456,7 +456,7 @@ export default function CandidateProfile({
           {job && (
             <>
               <Link
-                href={`/dashboard/pipeline?job=${candidate.job_id}`}
+                href={`/pipeline?job=${candidate.job_id}`}
                 className="hover:text-indigo-600 transition-colors"
               >
                 {job.title}

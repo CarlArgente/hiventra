@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useRef, useTransition } from "react";
 import Link from "next/link";
@@ -223,7 +223,7 @@ export default function IntelligenceReport({
   const handlePrint = () => window.print();
 
   const handleShare = () => {
-    const url = `${window.location.origin}/dashboard/candidates/${candidate.id}/report`;
+    const url = `${window.location.origin}/candidates/${candidate.id}/report`;
     navigator.clipboard.writeText(url).then(() => {
       setStageMsg("Report link copied to clipboard");
       setTimeout(() => setStageMsg(null), 3000);
@@ -235,15 +235,15 @@ export default function IntelligenceReport({
       {/* Breadcrumb — matches CandidateProfile style */}
       <div className="px-4 sm:px-6 py-3 bg-white border-b border-slate-100 print:hidden">
         <nav className="flex items-center gap-2 text-sm text-slate-500">
-          <Link href="/dashboard/jobs" className="hover:text-indigo-600 transition-colors">Jobs</Link>
+          <Link href="/jobs" className="hover:text-indigo-600 transition-colors">Jobs</Link>
           <span className="text-slate-300">›</span>
           {job && (
             <>
-              <Link href={`/dashboard/pipeline?job=${candidate.job_id}`} className="hover:text-indigo-600 transition-colors">{job.title}</Link>
+              <Link href={`/pipeline?job=${candidate.job_id}`} className="hover:text-indigo-600 transition-colors">{job.title}</Link>
               <span className="text-slate-300">›</span>
             </>
           )}
-          <Link href={`/dashboard/candidates/${candidate.id}`} className="hover:text-indigo-600 transition-colors">{candidate.full_name}</Link>
+          <Link href={`/candidates/${candidate.id}`} className="hover:text-indigo-600 transition-colors">{candidate.full_name}</Link>
           <span className="text-slate-300">›</span>
           <span className="font-medium text-slate-800">Intelligence Report</span>
         </nav>
@@ -477,7 +477,7 @@ export default function IntelligenceReport({
                   <UserCheck className="w-4 h-4" /> Recommend Candidate
                 </button>
                 <button
-                  onClick={() => router.push(`/dashboard/candidates/${candidate.id}`)}
+                  onClick={() => router.push(`/candidates/${candidate.id}`)}
                   className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm py-2.5 rounded-xl transition-colors"
                 >
                   View Full Profile

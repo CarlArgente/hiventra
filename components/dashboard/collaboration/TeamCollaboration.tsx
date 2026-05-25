@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useMemo, Fragment } from "react";
 import Link from "next/link";
@@ -472,7 +472,7 @@ function ComparisonTab({
                     ))}
                   </div>
                   <Link
-                    href={`/dashboard/candidates/${c.id}/report`}
+                    href={`/candidates/${c.id}/report`}
                     className="mt-auto text-xs text-indigo-600 hover:underline inline-flex items-center gap-1 font-medium"
                   >
                     <Eye className="w-3 h-3" /> View Report
@@ -562,7 +562,7 @@ function ComparisonTab({
                     </td>
                     <td className="px-4 py-3">
                       <Link
-                        href={`/dashboard/candidates/${c.id}/report`}
+                        href={`/candidates/${c.id}/report`}
                         className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
                       >
                         <Eye className="w-3.5 h-3.5" /> Report
@@ -1199,7 +1199,7 @@ export default function TeamCollaboration({
       <div className="px-4 sm:px-6 py-3 bg-white border-b border-slate-100">
         <nav className="flex items-center gap-2 text-sm">
           <Link
-            href="/dashboard/collaboration"
+            href="/collaboration"
             className="text-slate-500 hover:text-indigo-600 transition-colors"
           >
             Collaboration

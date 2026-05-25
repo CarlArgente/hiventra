@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
@@ -105,7 +105,7 @@ export async function saveOrgSettings(data: {
     : await supabase.from("org_settings").insert(payload);
 
   if (error) return { error: error.message };
-  revalidatePath("/dashboard/settings");
+  revalidatePath("/settings");
   return {};
 }
 
@@ -129,7 +129,7 @@ export async function saveCarlDefaults(data: {
     : await supabase.from("carl_defaults").insert(payload);
 
   if (error) return { error: error.message };
-  revalidatePath("/dashboard/settings");
+  revalidatePath("/settings");
   return {};
 }
 
@@ -152,7 +152,7 @@ export async function saveScoringThresholds(data: {
     : await supabase.from("scoring_thresholds").insert(payload);
 
   if (error) return { error: error.message };
-  revalidatePath("/dashboard/settings");
+  revalidatePath("/settings");
   return {};
 }
 
@@ -169,7 +169,7 @@ export async function saveNotifPrefs(
     .upsert(prefs, { onConflict: "event_name,role" });
 
   if (error) return { error: error.message };
-  revalidatePath("/dashboard/settings");
+  revalidatePath("/settings");
   return {};
 }
 
@@ -197,7 +197,7 @@ export async function inviteUser(
   });
 
   if (error) return { error: error.message };
-  revalidatePath("/dashboard/settings");
+  revalidatePath("/settings");
   return {};
 }
 
@@ -214,7 +214,7 @@ export async function updateUserRole(
     .eq("id", userId);
 
   if (error) return { error: error.message };
-  revalidatePath("/dashboard/settings");
+  revalidatePath("/settings");
   return {};
 }
 
@@ -231,6 +231,6 @@ export async function setUserStatus(
     .eq("id", userId);
 
   if (error) return { error: error.message };
-  revalidatePath("/dashboard/settings");
+  revalidatePath("/settings");
   return {};
 }

@@ -1,4 +1,4 @@
-import Topbar from "@/components/dashboard/Topbar";
+﻿import Topbar from "@/components/dashboard/Topbar";
 import { LucideIcon, Construction } from "lucide-react";
 
 interface PlaceholderPageProps {

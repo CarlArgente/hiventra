@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -448,7 +448,7 @@ function JobRow({
 
                 <DropdownMenu.Item asChild>
                   <a
-                    href={`/dashboard/pipeline?job=${job.id}`}
+                    href={`/pipeline?job=${job.id}`}
                     className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 cursor-pointer outline-none transition-colors"
                   >
                     <Eye className="w-3.5 h-3.5 text-slate-400" />

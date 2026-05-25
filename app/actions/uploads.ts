@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -107,7 +107,7 @@ export async function submitUploadBatch(jobId: string, files: UploadedFile[]) {
     results.push({ uploadId: upload?.id ?? "", candidateId });
   }
 
-  revalidatePath("/dashboard/upload");
-  revalidatePath("/dashboard/jobs");
+  revalidatePath("/upload");
+  revalidatePath("/jobs");
   return { success: true, results };
 }

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   Briefcase,
@@ -112,7 +112,7 @@ export default function DashboardHome({ data }: { data: DashboardData }) {
           <p className="text-xs text-slate-400 mt-1">Here&apos;s what&apos;s happening with your hiring pipeline today.</p>
         </div>
         <Link
-          href="/dashboard/jobs"
+          href="/jobs"
           className="hidden sm:flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-semibold px-4 py-2.5 rounded-full shadow-sm hover:-translate-y-0.5 transition-all duration-200 text-sm"
         >
           <Plus className="w-4 h-4" /> New Job
@@ -164,7 +164,7 @@ export default function DashboardHome({ data }: { data: DashboardData }) {
         <div className="xl:col-span-3 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
             <h2 className="font-bold text-slate-900">Active Jobs</h2>
-            <Link href="/dashboard/jobs" className="text-xs text-indigo-600 font-medium hover:text-indigo-700 flex items-center gap-1">
+            <Link href="/jobs" className="text-xs text-indigo-600 font-medium hover:text-indigo-700 flex items-center gap-1">
               View all <ArrowUpRight className="w-3 h-3" />
             </Link>
           </div>
@@ -175,7 +175,7 @@ export default function DashboardHome({ data }: { data: DashboardData }) {
               {jobs.map((job) => (
                 <Link
                   key={job.id}
-                  href={`/dashboard/pipeline?job=${job.id}`}
+                  href={`/pipeline?job=${job.id}`}
                   className="flex items-center justify-between px-5 py-3.5 hover:bg-slate-50 transition-colors"
                 >
                   <div>
@@ -234,7 +234,7 @@ export default function DashboardHome({ data }: { data: DashboardData }) {
             <h2 className="font-bold text-slate-900">Pipeline Snapshot</h2>
             <p className="text-xs text-slate-400 mt-0.5">All candidates across all jobs</p>
           </div>
-          <Link href="/dashboard/pipeline" className="text-xs text-indigo-600 font-medium hover:text-indigo-700 flex items-center gap-1">
+          <Link href="/pipeline" className="text-xs text-indigo-600 font-medium hover:text-indigo-700 flex items-center gap-1">
             View pipeline <ArrowUpRight className="w-3 h-3" />
           </Link>
         </div>
@@ -274,10 +274,10 @@ export default function DashboardHome({ data }: { data: DashboardData }) {
       {/* Quick Actions */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: "Create Job", icon: Briefcase, href: "/dashboard/jobs" },
-          { label: "Upload Resumes", icon: Upload, href: "/dashboard/upload" },
-          { label: "View Candidates", icon: Users, href: "/dashboard/pipeline" },
-          { label: "Analytics", icon: BarChart2, href: "/dashboard/analytics" },
+          { label: "Create Job", icon: Briefcase, href: "/jobs" },
+          { label: "Upload Resumes", icon: Upload, href: "/upload" },
+          { label: "View Candidates", icon: Users, href: "/pipeline" },
+          { label: "Analytics", icon: BarChart2, href: "/analytics" },
         ].map(({ label, icon: Icon, href }) => (
           <Link
             key={label}
@@ -295,7 +295,7 @@ export default function DashboardHome({ data }: { data: DashboardData }) {
       {/* Quick Actions — Reports row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Link
-          href="/dashboard/analytics"
+          href="/analytics"
           className="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-xl p-4 flex items-center gap-4 shadow-sm hover:-translate-y-0.5 transition-all duration-200"
         >
           <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
@@ -308,7 +308,7 @@ export default function DashboardHome({ data }: { data: DashboardData }) {
           <ArrowUpRight className="w-4 h-4 text-white/60 ml-auto shrink-0" />
         </Link>
         <Link
-          href="/dashboard/audit"
+          href="/audit"
           className="bg-white border border-slate-200 rounded-xl p-4 flex items-center gap-4 shadow-sm hover:-translate-y-0.5 hover:border-indigo-200 transition-all duration-200"
         >
           <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">
