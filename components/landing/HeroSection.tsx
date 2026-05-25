@@ -71,9 +71,9 @@ export default function HeroSection() {
 
           {/* Right: hero image (desktop only) */}
           <div className="flex-1 hidden lg:flex items-center justify-center">
-            <div className="relative w-[540px] animate-float">
+            <div className="relative w-[620px] animate-float">
               <img
-                src="/hiventra_hero_new.png"
+                src="/hiventra_hero_person.png"
                 alt="Hiventra Dashboard"
                 className="w-full"
               />
