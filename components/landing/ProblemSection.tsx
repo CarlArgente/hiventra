@@ -27,7 +27,7 @@ const pains = [
     color: "text-rose-500",
     bg: "bg-rose-50",
     title: "Not every applicant deserves an hour",
-    body: "HR teams spend hours conducting initial screening interviews — only to find out 10 minutes in that the candidate doesn't meet basic requirements. Every unqualified interview is time stolen from candidates who actually matter.",
+    body: "HR teams spend hours conducting initial screening interviews — only to find out 10 minutes in that the candidate doesn't meet basic requirements.",
     stat: "The average HR team wastes 14 hours per week on unqualified screening interviews.",
   },
 ];
@@ -51,28 +51,42 @@ export default function ProblemSection() {
           </p>
         </div>
 
-        {/* Pain cards — 2×2 grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          {pains.map((pain) => {
-            const Icon = pain.icon;
-            return (
-              <div
-                key={pain.title}
-                className="bg-white rounded-2xl p-7 border border-slate-100 shadow-soft hover:shadow-hover hover:-translate-y-1 transition-all duration-200 group"
-              >
-                <div className={`w-12 h-12 ${pain.bg} rounded-xl flex items-center justify-center mb-5`}>
-                  <Icon className={`w-6 h-6 ${pain.color}`} />
+        {/* Two-column: image left, problems right */}
+        <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
+          {/* Left: image */}
+          <div className="flex-[1.4] flex items-center justify-center">
+            <img
+              src="/problem.png"
+              alt="The Hiring Problem"
+              className="w-full"
+            />
+          </div>
+
+          {/* Right: pain cards stacked */}
+          <div className="flex-1 flex flex-col gap-5">
+            {pains.map((pain) => {
+              const Icon = pain.icon;
+              return (
+                <div
+                  key={pain.title}
+                  className="bg-white rounded-2xl p-6 border border-slate-100 shadow-soft hover:shadow-hover hover:-translate-y-1 transition-all duration-200 group flex items-start gap-4"
+                >
+                  <div className={`w-11 h-11 ${pain.bg} rounded-xl flex items-center justify-center shrink-0`}>
+                    <Icon className={`w-5 h-5 ${pain.color}`} />
+                  </div>
+                  <div>
+                    <h3 className="text-slate-900 font-bold text-base mb-1">{pain.title}</h3>
+                    <p className="text-slate-500 text-sm leading-relaxed">{pain.body}</p>
+                    {pain.stat && (
+                      <p className="mt-3 text-rose-600 text-xs font-semibold border-t border-rose-100 pt-2">
+                        📊 {pain.stat}
+                      </p>
+                    )}
+                  </div>
                 </div>
-                <h3 className="text-slate-900 font-bold text-lg mb-2">{pain.title}</h3>
-                <p className="text-slate-500 text-sm leading-relaxed">{pain.body}</p>
-                {pain.stat && (
-                  <p className="mt-4 text-rose-600 text-xs font-semibold border-t border-rose-100 pt-3">
-                    📊 {pain.stat}
-                  </p>
-                )}
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </div>
     </section>

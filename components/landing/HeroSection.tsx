@@ -51,7 +51,7 @@ export default function HeroSection() {
                 onClick={() => setDemoOpen(true)}
                 className="flex items-center justify-center gap-2 bg-white/10 border border-white/20 text-white font-semibold px-8 py-4 rounded-full hover:bg-white/15 transition-all duration-200 text-base"
               >
-                <span className="text-indigo-300">▶</span> Watch Demo
+                <span className="text-indigo-300">▶</span> Watch Intro
               </button>
             </div>
 

@@ -64,7 +64,7 @@ export default function PersonalitySection() {
   const [active, setActive] = useState(1);
 
   return (
-    <section className="py-20 lg:py-28 bg-slate-100" id="personality">
+    <section className="pt-20 lg:pt-28 pb-0 bg-slate-100 overflow-visible" id="personality">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center max-w-2xl mx-auto mb-12">
@@ -128,6 +128,15 @@ export default function PersonalitySection() {
             </div>
           </div>
         )}
+
+        {/* Bridge image — overlaps into HowItWorksSection below */}
+        <div className="relative z-10 mt-16 flex justify-center -mb-40">
+          <img
+            src="/how_it_works.png"
+            alt="How It Works"
+            className="w-full max-w-2xl drop-shadow-2xl"
+          />
+        </div>
       </div>
     </section>
   );
