@@ -167,64 +167,80 @@ export default function JobsTable({ jobs: initial }: { jobs: Job[] }) {
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         {/* Filter bar */}
-        <div className="flex flex-wrap items-center gap-3 px-4 py-3 border-b border-slate-100">
-          {/* Search */}
-          <div className="relative min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search jobs..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-            />
+        <div className="px-4 py-3 border-b border-slate-100 space-y-2 sm:space-y-0">
+          {/* Row 1 (mobile) / single row (sm+): search + tabs + sort */}
+          <div className="flex items-center gap-3">
+            {/* Search */}
+            <div className="relative flex-1 sm:flex-none sm:w-52">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search jobs..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+              />
+            </div>
+
+            {/* Status tabs — hidden on mobile, inline on sm+ */}
+            <div className="hidden sm:flex items-center gap-1 flex-1">
+              {STATUS_TABS.map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setTab(t)}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${
+                    tab === t ? "bg-indigo-600 text-white" : "text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+
+            {/* Sort dropdown */}
+            <div className="relative shrink-0" ref={sortRef}>
+              <button
+                onClick={() => setSortOpen((o) => !o)}
+                className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors whitespace-nowrap"
+              >
+                {SORT_OPTIONS.find((o) => o.value === sort)?.label}
+                <ChevronDown
+                  className={`w-3.5 h-3.5 transition-transform duration-150 ${sortOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+              {sortOpen && (
+                <div className="absolute right-0 top-full mt-1.5 w-44 bg-white border border-slate-200 rounded-xl shadow-lg z-20 py-1">
+                  {SORT_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => { setSort(opt.value); setSortOpen(false); }}
+                      className={`w-full text-left px-3 py-2 text-xs font-medium transition-colors ${
+                        sort === opt.value
+                          ? "text-indigo-600 bg-indigo-50"
+                          : "text-slate-700 hover:bg-slate-50"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Status tabs */}
-          <div className="flex items-center gap-1 flex-1 flex-wrap">
+          {/* Status tabs — mobile only, scrollable single row */}
+          <div className="flex sm:hidden items-center gap-1 overflow-x-auto pb-0.5 -mx-1 px-1">
             {STATUS_TABS.map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
-                  tab === t
-                    ? "bg-indigo-600 text-white"
-                    : "text-slate-600 hover:bg-slate-100"
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap shrink-0 ${
+                  tab === t ? "bg-indigo-600 text-white" : "text-slate-600 hover:bg-slate-100"
                 }`}
               >
                 {t}
               </button>
             ))}
-          </div>
-
-          {/* Sort dropdown */}
-          <div className="relative" ref={sortRef}>
-            <button
-              onClick={() => setSortOpen((o) => !o)}
-              className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors whitespace-nowrap"
-            >
-              {SORT_OPTIONS.find((o) => o.value === sort)?.label}
-              <ChevronDown
-                className={`w-3.5 h-3.5 transition-transform duration-150 ${sortOpen ? "rotate-180" : ""}`}
-              />
-            </button>
-            {sortOpen && (
-              <div className="absolute right-0 top-full mt-1.5 w-44 bg-white border border-slate-200 rounded-xl shadow-lg z-20 py-1">
-                {SORT_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    onClick={() => { setSort(opt.value); setSortOpen(false); }}
-                    className={`w-full text-left px-3 py-2 text-xs font-medium transition-colors ${
-                      sort === opt.value
-                        ? "text-indigo-600 bg-indigo-50"
-                        : "text-slate-700 hover:bg-slate-50"
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
         </div>
 

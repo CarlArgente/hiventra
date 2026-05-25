@@ -233,7 +233,7 @@ export default function IntelligenceReport({
   return (
     <div className="flex-1 overflow-auto bg-slate-50">
       {/* Breadcrumb — matches CandidateProfile style */}
-      <div className="px-6 py-3 bg-white border-b border-slate-100 print:hidden">
+      <div className="px-4 sm:px-6 py-3 bg-white border-b border-slate-100 print:hidden">
         <nav className="flex items-center gap-2 text-sm text-slate-500">
           <Link href="/dashboard/jobs" className="hover:text-indigo-600 transition-colors">Jobs</Link>
           <span className="text-slate-300">›</span>
@@ -249,7 +249,7 @@ export default function IntelligenceReport({
         </nav>
       </div>
 
-      <div className="flex gap-6 p-6 items-start max-w-screen-xl mx-auto print:p-0">
+      <div className="flex flex-col lg:flex-row gap-6 p-4 sm:p-6 items-start max-w-screen-xl mx-auto print:p-0">
         {/* ── LEFT MAIN COLUMN ─────────────────────────────────────── */}
         <div className="flex-1 min-w-0 space-y-5">
 
@@ -455,8 +455,8 @@ export default function IntelligenceReport({
         </div>
 
         {/* ── RIGHT SIDEBAR ─────────────────────────────────────────── */}
-        <div className="w-72 flex-shrink-0 print:hidden">
-          <div className="sticky top-6 space-y-4">
+        <div className="w-full lg:w-72 flex-shrink-0 print:hidden">
+          <div className="lg:sticky lg:top-6 space-y-4">
 
             {/* Toast */}
             {stageMsg && (

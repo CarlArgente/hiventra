@@ -702,9 +702,9 @@ function CommentsTab({
   }
 
   return (
-    <div className="flex gap-4" style={{ height: "calc(100vh - 296px)", minHeight: "480px" }}>
+    <div className="flex flex-col lg:flex-row gap-4" style={{ height: "calc(100vh - 296px)", minHeight: "480px" }}>
       {/* Left: candidate list */}
-      <div className="w-60 shrink-0 bg-white rounded-2xl border border-slate-100 shadow-soft flex flex-col overflow-hidden">
+      <div className="w-full lg:w-60 shrink-0 bg-white rounded-2xl border border-slate-100 shadow-soft flex flex-col overflow-hidden">
         <div className="px-4 py-3 border-b border-slate-100 shrink-0">
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Candidates</p>
         </div>
@@ -1196,7 +1196,7 @@ export default function TeamCollaboration({
   return (
     <div className="flex flex-col min-h-full">
       {/* Breadcrumb */}
-      <div className="px-6 py-3 bg-white border-b border-slate-100">
+      <div className="px-4 sm:px-6 py-3 bg-white border-b border-slate-100">
         <nav className="flex items-center gap-2 text-sm">
           <Link
             href="/dashboard/collaboration"
@@ -1216,7 +1216,7 @@ export default function TeamCollaboration({
       </div>
 
       {/* Page header */}
-      <div className="px-6 py-4 bg-white border-b border-slate-100 flex items-center justify-between">
+      <div className="px-4 sm:px-6 py-4 bg-white border-b border-slate-100 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-slate-800">
             Hiring Team — {job.title}
@@ -1243,7 +1243,7 @@ export default function TeamCollaboration({
       </div>
 
       {/* Tabs */}
-      <div className="bg-white border-b border-slate-100 px-6">
+      <div className="bg-white border-b border-slate-100 px-4 sm:px-6">
         <div className="flex">
           {TABS.map((tab) => {
             const Icon = tab.icon;
@@ -1266,7 +1266,7 @@ export default function TeamCollaboration({
       </div>
 
       {/* Tab content */}
-      <div className="flex-1 p-6">
+      <div className="flex-1 p-4 sm:p-6">
         {activeTab === "comparison" && (
           <ComparisonTab
             candidates={sorted}

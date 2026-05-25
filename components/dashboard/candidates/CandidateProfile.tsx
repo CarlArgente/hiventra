@@ -367,7 +367,7 @@ export default function CandidateProfile({
     await sendInterviewInvite(
       candidate.id,
       job.id,
-      interview?.mode ?? job.carl_mode ?? "text"
+      job.carl_mode ?? "text"
     );
     setActionLoading(false);
     router.refresh();
@@ -444,7 +444,7 @@ export default function CandidateProfile({
   return (
     <div className="flex-1 overflow-auto bg-slate-50">
       {/* Breadcrumb */}
-      <div className="px-6 py-3 bg-white border-b border-slate-100">
+      <div className="px-4 sm:px-6 py-3 bg-white border-b border-slate-100">
         <nav className="flex items-center gap-2 text-sm text-slate-500">
           <Link
             href="/dashboard/jobs"
@@ -468,7 +468,7 @@ export default function CandidateProfile({
         </nav>
       </div>
 
-      <div className="flex gap-6 p-6 items-start max-w-screen-xl mx-auto">
+      <div className="flex flex-col lg:flex-row gap-6 p-4 sm:p-6 items-start max-w-screen-xl mx-auto">
         {/* ── LEFT COLUMN ───────────────────────────────────────────────── */}
         <div className="flex-1 min-w-0 space-y-5">
 
@@ -828,7 +828,7 @@ export default function CandidateProfile({
         </div>
 
         {/* ── RIGHT SIDEBAR ─────────────────────────────────────────────── */}
-        <div className="w-[300px] shrink-0 space-y-5 sticky top-6">
+        <div className="w-full lg:w-[300px] shrink-0 space-y-5 lg:sticky lg:top-6">
 
           {/* Action Card */}
           <div className={cn(card, "p-5")}>

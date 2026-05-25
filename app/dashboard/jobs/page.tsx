@@ -29,7 +29,7 @@ export default async function JobsPage() {
   return (
     <>
       <Topbar title="Job Management" subtitle="Create, manage, and track all job postings" />
-      <main className="flex-1 overflow-y-auto p-6">
+      <main className="flex-1 overflow-y-auto p-4 sm:p-6">
         <JobsTable jobs={jobsWithCounts} />
       </main>
     </>

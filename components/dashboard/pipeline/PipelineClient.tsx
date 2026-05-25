@@ -159,7 +159,7 @@ export default function PipelineClient({ jobs, initialJobId, initialCandidates }
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
       {/* Job context bar */}
-      <div className="px-6 py-3.5 bg-white border-b border-slate-100 flex items-center gap-4 flex-wrap shrink-0">
+      <div className="px-4 sm:px-6 py-3.5 bg-white border-b border-slate-100 flex items-center gap-4 flex-wrap shrink-0">
         <div className="relative min-w-[280px]">
           <select
             value={selectedJobId}
@@ -221,7 +221,7 @@ export default function PipelineClient({ jobs, initialJobId, initialCandidates }
       </div>
 
       {/* Controls row */}
-      <div className="px-6 py-2.5 bg-white border-b border-slate-100 flex items-center gap-3 shrink-0">
+      <div className="px-4 sm:px-6 py-2.5 bg-white border-b border-slate-100 flex items-center gap-3 shrink-0">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
@@ -281,7 +281,7 @@ export default function PipelineClient({ jobs, initialJobId, initialCandidates }
 
       {/* Bulk action bar */}
       {selected.size > 0 && (
-        <div className="px-6 py-2.5 bg-indigo-50 border-b border-indigo-100 flex items-center gap-4 shrink-0">
+        <div className="px-4 sm:px-6 py-2.5 bg-indigo-50 border-b border-indigo-100 flex items-center gap-4 shrink-0">
           <span className="text-sm font-semibold text-indigo-700">
             {selected.size} selected
           </span>

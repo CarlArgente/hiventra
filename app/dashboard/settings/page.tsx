@@ -1,13 +1,23 @@
-import PlaceholderPage from "@/components/dashboard/PlaceholderPage";
-import { Settings } from "lucide-react";
+import Topbar from "@/components/dashboard/Topbar";
+import SettingsClient from "@/components/dashboard/settings/SettingsClient";
+import { getSettingsData } from "@/app/actions/settings";
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  const { carlDefaults, thresholds, users } = await getSettingsData();
+
   return (
-    <PlaceholderPage
-      title="Settings & Admin"
-      subtitle="Platform configuration hub"
-      description="Manage organization details, users and roles, Carl defaults, scoring thresholds, integrations (ATS, Calendar, Slack), notification preferences, and billing."
-      icon={Settings}
-    />
+    <>
+      <Topbar
+        title="Settings"
+        subtitle="Platform configuration hub — Admin only"
+      />
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+        <SettingsClient
+          carlDefaults={carlDefaults}
+          thresholds={thresholds}
+          users={users}
+        />
+      </div>
+    </>
   );
 }

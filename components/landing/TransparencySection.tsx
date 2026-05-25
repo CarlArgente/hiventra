@@ -32,7 +32,7 @@ const badges = ["SOC 2 Type II", "GDPR Compliant", "CCPA Compliant", "AES-256 En
 
 export default function TransparencySection() {
   return (
-    <section className="py-20 lg:py-28 bg-white">
+    <section className="py-20 lg:py-28 bg-white" id="transparency">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col lg:flex-row items-center gap-14 lg:gap-20">
 

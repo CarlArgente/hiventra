@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Sidenav from "@/components/dashboard/Sidenav";
+import DashboardShell from "@/components/dashboard/DashboardShell";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -21,11 +22,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden">
-      <Sidenav />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {children}
+    <DashboardShell>
+      <div className="flex h-screen bg-slate-50 overflow-hidden">
+        <Sidenav />
+        <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+          {children}
+        </div>
       </div>
-    </div>
+    </DashboardShell>
   );
 }

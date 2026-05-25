@@ -59,9 +59,7 @@ export default function SolutionSection() {
               {/* Top bar */}
               <div className="flex items-center justify-between px-5 py-3 border-b border-slate-700/80 bg-slate-800/60">
                 <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center">
-                    <span className="text-white text-[9px] font-bold">H</span>
-                  </div>
+                  <img src="/hiventra_icon.png" alt="Hiventra" className="w-5 h-5 rounded object-cover" />
                   <span className="text-white text-xs font-semibold">Candidate Pipeline</span>
                 </div>
                 <div className="flex gap-1">

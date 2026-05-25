@@ -314,7 +314,7 @@ export default function KanbanView({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex gap-3 p-6 overflow-x-auto h-full items-start no-scrollbar">
+      <div className="flex gap-3 p-4 sm:p-6 overflow-x-auto h-full items-start no-scrollbar">
         {PIPELINE_STAGES.map((stage) => (
           <KanbanColumn
             key={stage}

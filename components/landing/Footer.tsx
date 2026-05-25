@@ -18,7 +18,7 @@ const footerLinks = [
   },
   {
     heading: "Get Started",
-    links: ["Start Free Trial", "Book a Demo", "View Pricing", "Talk to Sales", "Request Enterprise Quote"],
+    links: ["Start Now", "Book a Demo", "View Pricing", "Talk to Sales", "Request Enterprise Quote"],
   },
 ];
 
@@ -31,9 +31,7 @@ export default function Footer() {
           {/* Brand column */}
           <div className="lg:col-span-1">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center">
-                <span className="text-white font-extrabold text-sm">H</span>
-              </div>
+              <img src="/hiventra_icon.png" alt="Hiventra" className="w-8 h-8 rounded-lg object-cover" />
               <span className="text-white font-extrabold text-lg">Hiventra</span>
             </div>
             <p className="text-slate-400 text-sm leading-relaxed mb-5">

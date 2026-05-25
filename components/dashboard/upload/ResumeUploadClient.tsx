@@ -437,10 +437,10 @@ export default function ResumeUploadClient({ activeJobs }: Props) {
   return (
     <>
       {/* ── Two-column layout ── */}
-      <div className="grid grid-cols-[440px_1fr] gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-[440px_1fr] gap-6 items-start">
 
         {/* ── Left column: job info, sticky, fills viewport height ── */}
-        <div className="sticky top-6 h-[calc(100vh-5.5rem)] flex flex-col gap-4">
+        <div className="lg:sticky lg:top-6 lg:h-[calc(100vh-5.5rem)] flex flex-col gap-4">
 
           {/* Job selector */}
           <div className="shrink-0 bg-white rounded-xl border border-slate-100 shadow-[0_4px_20px_-2px_rgba(79,70,229,0.08)] p-5">
@@ -641,33 +641,27 @@ export default function ResumeUploadClient({ activeJobs }: Props) {
               )}
 
               {/* Stats */}
-              <div className="grid grid-cols-3 gap-4">
-                <div className="bg-white rounded-xl border border-slate-100 shadow-[0_4px_20px_-2px_rgba(79,70,229,0.08)] p-5 flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-white rounded-xl border border-slate-100 shadow-[0_4px_20px_-2px_rgba(79,70,229,0.08)] p-4 flex flex-col items-center text-center gap-2">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                   </div>
-                  <div>
-                    <p className="text-2xl font-bold text-slate-900">{summaryScored.length}</p>
-                    <p className="text-sm text-slate-500 mt-0.5">Parsed Successfully</p>
-                  </div>
+                  <p className="text-2xl font-bold text-slate-900 leading-none">{summaryScored.length}</p>
+                  <p className="text-xs text-slate-500 leading-tight">Parsed Successfully</p>
                 </div>
-                <div className="bg-white rounded-xl border border-slate-100 shadow-[0_4px_20px_-2px_rgba(79,70,229,0.08)] p-5 flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
-                    <AlertCircle className="w-5 h-5 text-amber-500" />
+                <div className="bg-white rounded-xl border border-slate-100 shadow-[0_4px_20px_-2px_rgba(79,70,229,0.08)] p-4 flex flex-col items-center text-center gap-2">
+                  <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
+                    <AlertCircle className="w-4 h-4 text-amber-500" />
                   </div>
-                  <div>
-                    <p className="text-2xl font-bold text-slate-900">{summaryErrors.length}</p>
-                    <p className="text-sm text-slate-500 mt-0.5">Failed</p>
-                  </div>
+                  <p className="text-2xl font-bold text-slate-900 leading-none">{summaryErrors.length}</p>
+                  <p className="text-xs text-slate-500 leading-tight">Failed</p>
                 </div>
-                <div className="bg-white rounded-xl border border-slate-100 shadow-[0_4px_20px_-2px_rgba(79,70,229,0.08)] p-5 flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center flex-shrink-0">
-                    <BarChart3 className="w-5 h-5 text-indigo-500" />
+                <div className="bg-white rounded-xl border border-slate-100 shadow-[0_4px_20px_-2px_rgba(79,70,229,0.08)] p-4 flex flex-col items-center text-center gap-2">
+                  <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center flex-shrink-0">
+                    <BarChart3 className="w-4 h-4 text-indigo-500" />
                   </div>
-                  <div>
-                    <p className="text-2xl font-bold text-slate-900">{avgScore}/100</p>
-                    <p className="text-sm text-slate-500 mt-0.5">Avg Match Score</p>
-                  </div>
+                  <p className="text-2xl font-bold text-slate-900 leading-none">{avgScore}<span className="text-sm font-medium text-slate-400">/100</span></p>
+                  <p className="text-xs text-slate-500 leading-tight">Avg Match Score</p>
                 </div>
               </div>
 
@@ -680,30 +674,34 @@ export default function ResumeUploadClient({ activeJobs }: Props) {
                   </div>
                   <div className="divide-y divide-slate-50">
                     {summaryScored.map((e) => (
-                      <div key={e.id} className="px-5 py-3.5 flex items-center gap-3">
-                        <FileIcon type={e.fileType} />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-slate-700 truncate">{e.filename}</p>
-                          {e.aiSummary && (
-                            <p className="text-xs text-slate-500 mt-0.5 truncate">{e.aiSummary}</p>
-                          )}
+                      <div key={e.id} className="px-4 py-3 space-y-2">
+                        <div className="flex items-center gap-3">
+                          <FileIcon type={e.fileType} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-slate-700 truncate">{e.filename}</p>
+                            {e.aiSummary && (
+                              <p className="text-xs text-slate-500 mt-0.5 truncate">{e.aiSummary}</p>
+                            )}
+                          </div>
                         </div>
-                        <StatusBadge status={e.status} score={e.aiScore} />
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <button
-                            onClick={() => openPreview(e)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 text-xs font-semibold hover:bg-slate-50 transition-colors"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                            Preview
-                          </button>
-                          <button
-                            onClick={() => setDetailEntry(e)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-indigo-100 bg-indigo-50 text-indigo-600 text-xs font-semibold hover:bg-indigo-100 transition-colors"
-                          >
-                            <Info className="w-3.5 h-3.5" />
-                            Details
-                          </button>
+                        <div className="flex items-center justify-between gap-2 pl-12">
+                          <StatusBadge status={e.status} score={e.aiScore} />
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <button
+                              onClick={() => openPreview(e)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 text-xs font-semibold hover:bg-slate-50 transition-colors"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              Preview
+                            </button>
+                            <button
+                              onClick={() => setDetailEntry(e)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-indigo-100 bg-indigo-50 text-indigo-600 text-xs font-semibold hover:bg-indigo-100 transition-colors"
+                            >
+                              <Info className="w-3.5 h-3.5" />
+                              Details
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -720,36 +718,40 @@ export default function ResumeUploadClient({ activeJobs }: Props) {
                   </div>
                   <div className="divide-y divide-slate-50">
                     {summaryErrors.map((e) => (
-                      <div key={e.id} className="px-5 py-3.5 flex items-center gap-3">
-                        <FileIcon type={e.fileType} />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-slate-700 truncate">{e.filename}</p>
-                          {e.aiSummary && (
-                            <p className="text-xs text-slate-500 mt-0.5 truncate">{e.aiSummary}</p>
-                          )}
-                          <p className="text-xs text-red-500 mt-0.5 truncate">{e.errorReason}</p>
+                      <div key={e.id} className="px-4 py-3 space-y-2">
+                        <div className="flex items-center gap-3">
+                          <FileIcon type={e.fileType} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-slate-700 truncate">{e.filename}</p>
+                            {e.aiSummary && (
+                              <p className="text-xs text-slate-500 mt-0.5 truncate">{e.aiSummary}</p>
+                            )}
+                            <p className="text-xs text-red-500 mt-0.5 truncate">{e.errorReason}</p>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          {e.aiScore !== null && (
+                        <div className="flex items-center justify-between gap-2 pl-12">
+                          {e.aiScore !== null ? (
                             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 text-red-600 whitespace-nowrap">
                               <AlertCircle className="w-3 h-3" />
                               {e.aiScore}/100
                             </span>
-                          )}
-                          <button
-                            onClick={() => openPreview(e)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 text-xs font-semibold hover:bg-slate-50 transition-colors"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                            Preview
-                          </button>
-                          <button
-                            onClick={() => setDetailEntry(e)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-100 bg-red-50 text-red-600 text-xs font-semibold hover:bg-red-100 transition-colors"
-                          >
-                            <Info className="w-3.5 h-3.5" />
-                            Details
-                          </button>
+                          ) : <span />}
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <button
+                              onClick={() => openPreview(e)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 text-xs font-semibold hover:bg-slate-50 transition-colors"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              Preview
+                            </button>
+                            <button
+                              onClick={() => setDetailEntry(e)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-100 bg-red-50 text-red-600 text-xs font-semibold hover:bg-red-100 transition-colors"
+                            >
+                              <Info className="w-3.5 h-3.5" />
+                              Details
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}

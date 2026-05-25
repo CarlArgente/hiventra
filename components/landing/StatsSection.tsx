@@ -7,7 +7,7 @@ const stats = [
 
 export default function StatsSection() {
   return (
-    <section className="py-20 lg:py-24 bg-gradient-to-r from-indigo-600 to-violet-700 relative overflow-hidden">
+    <section className="py-20 lg:py-24 bg-gradient-to-r from-indigo-600 to-violet-700 relative overflow-hidden" id="stats">
       {/* Background effect */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute -top-20 -left-20 w-80 h-80 bg-white/5 rounded-full blur-3xl" />

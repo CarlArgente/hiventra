@@ -24,7 +24,7 @@ const GRID_CELL = "1 / 1";
 
 export default function MeetCarlSection() {
   return (
-    <section className="py-20 lg:py-28 bg-slate-900 relative overflow-hidden">
+    <section className="py-20 lg:py-28 bg-slate-900 relative overflow-hidden" id="meet-carl">
       {/* Ambient bg blobs */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-indigo-600/8 rounded-full blur-3xl" />

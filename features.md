@@ -141,7 +141,7 @@ Design language: enterprise SaaS — dark sidebar (slate-900), white/light gray
 main content area, indigo accent color, card shadows, clean data typography. 
 Status badges use color coding: Active=green, Draft=yellow, Closed=gray.
 
-Tech: React with Tailwind CSS. Use recharts for the pipeline funnel visualization. 
+Tech: Use recharts for the pipeline funnel visualization. 
 Sidebar collapsible with smooth transition. All data from props/mock JSON.
 ```
 
@@ -1273,7 +1273,7 @@ Layout:
 - Page header: "Settings"
 - Left sub-navigation (within page): vertical tab list:
   Organization | Users & Roles | Carl Defaults | Scoring | 
-  Integrations | Notifications | Billing
+  Notifications 
 - Right content area: changes per selected tab
 
 TAB — Organization:
@@ -1309,35 +1309,22 @@ TAB — Scoring Thresholds:
   - Thresholds enforce non-overlapping ranges
   - Save button
 
-TAB — Integrations:
-  - Integration cards in a grid (4 per row):
-    Each card: service logo | name | "Connected" badge (green) or 
-    "Connect" button (indigo outline)
-    Services: Greenhouse | Lever | Workday | BambooHR | Google Calendar | 
-    Outlook | Slack | SendGrid | Google SSO | Microsoft SSO
-  - "Connected" cards show: connected email/account + "Disconnect" link
 
 TAB — Notifications:
   - Table of notification events:
-    Event | Email HR Manager | Email Hiring Manager | Email Dept. Head | 
-    Slack (if connected)
+    Event | Email HR Manager | Email Hiring Manager | Email Dept. Head 
     Toggle checkboxes per event per role
     Events: Resume Uploaded, Interview Completed, Report Ready, 
     Approval Needed, Candidate Hired
 
-TAB — Billing:
-  - Current Plan card: plan name, seats used / total, renewal date
-  - Usage stats: interviews this month, resumes processed
-  - "Upgrade Plan" CTA (indigo)
-  - (Placeholder — no real billing logic)
 
 Design: Clean settings UI — each tab is a separate content panel. 
 Forms use consistent field spacing. Integration cards use actual 
 service brand colors on logos. Toggle switches for notification matrix. 
 Sliders for score thresholds show live color band preview.
 
-Tech: React + Tailwind CSS. Tab navigation: state-controlled. 
-User table: mock array with role dropdown inline editing. 
+Tech: Tab navigation: state-controlled. 
+User table: array with role dropdown inline editing. 
 Threshold sliders: constrained so they don't overlap. 
 Integration cards: connected/disconnected toggle state. 
 Notification matrix: 2D boolean state array.

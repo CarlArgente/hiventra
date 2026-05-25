@@ -293,7 +293,7 @@ export async function sendInterviewInvite(
   if (existing) {
     await supabase
       .from("interviews")
-      .update({ status: "invited", invited_at: new Date().toISOString() })
+      .update({ status: "invited", invited_at: new Date().toISOString(), mode })
       .eq("id", existing.id);
   } else {
     await supabase.from("interviews").insert({

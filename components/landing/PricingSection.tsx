@@ -27,7 +27,7 @@ const plans = [
     tagline: "For growing HR teams that need to move fast",
     price: "$149",
     period: "/ month",
-    cta: "Start Free Trial →",
+    cta: "Start Now →",
     ctaStyle: "bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-btn hover:-translate-y-0.5",
     trust: "14-day free trial · No credit card required",
     features: [

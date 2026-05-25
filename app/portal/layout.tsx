@@ -32,9 +32,7 @@ export default async function PortalLayout({
       <header className="bg-white border-b border-slate-200 sticky top-0 z-30">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center">
-              <span className="text-white font-extrabold text-xs">H</span>
-            </div>
+            <img src="/hiventra_icon.png" alt="Hiventra" className="w-7 h-7 rounded-lg object-cover" />
             <span className="font-extrabold text-slate-900 text-sm tracking-tight">
               Hiventra
             </span>

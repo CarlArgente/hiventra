@@ -12,7 +12,7 @@ export default async function CollaborationIndexPage() {
         title="Team Collaboration"
         subtitle="Select a job to open the collaboration workspace"
       />
-      <main className="flex-1 overflow-y-auto bg-brand-bg p-6">
+      <main className="flex-1 overflow-y-auto bg-brand-bg p-4 sm:p-6">
         <div className="max-w-2xl">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">
             Jobs

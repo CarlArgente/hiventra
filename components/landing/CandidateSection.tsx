@@ -11,7 +11,7 @@ const portalFeatures = [
 
 export default function CandidateSection() {
   return (
-    <section className="py-20 lg:py-28 bg-slate-900 relative overflow-hidden">
+    <section className="py-20 lg:py-28 bg-slate-900 relative overflow-hidden" id="candidates">
       {/* Background orbs */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-600/10 rounded-full blur-3xl" />

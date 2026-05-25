@@ -16,7 +16,7 @@ const analyticsFeatures = [
 
 export default function AnalyticsSection() {
   return (
-    <section className="py-20 lg:py-28 bg-slate-50">
+    <section className="py-20 lg:py-28 bg-slate-50" id="analytics">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center max-w-2xl mx-auto mb-14">

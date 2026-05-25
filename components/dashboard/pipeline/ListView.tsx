@@ -133,9 +133,9 @@ export default function ListView({
   const allSelected = candidates.length > 0 && selected.size === candidates.length;
 
   return (
-    <div className="p-6 h-full overflow-auto">
-      <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
-        <table className="w-full text-sm">
+    <div className="p-4 sm:p-6 h-full overflow-auto">
+      <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-x-auto">
+        <table className="w-full text-sm min-w-[640px]">
           <thead className="bg-slate-50 border-b border-slate-100">
             <tr>
               <th className="px-4 py-3 w-10">

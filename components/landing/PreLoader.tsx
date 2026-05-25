@@ -32,16 +32,15 @@ export default function PreLoader() {
           className="absolute rounded-full bg-violet-600/10 animate-ping"
           style={{ width: 88, height: 88, animationDuration: "1.6s", animationDelay: "0.35s" }}
         />
-        <div
-          className="relative w-[68px] h-[68px] rounded-2xl flex items-center justify-center animate-pulse"
+        <img
+          src="/hiventra_icon.png"
+          alt="Hiventra"
+          className="relative w-[68px] h-[68px] rounded-2xl object-cover animate-pulse"
           style={{
-            background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)",
             boxShadow: "0 0 50px rgba(79,70,229,0.7), 0 0 20px rgba(124,58,237,0.5)",
             animationDuration: "2s",
           }}
-        >
-          <span className="text-white text-3xl font-extrabold select-none">H</span>
-        </div>
+        />
       </div>
 
       {/* Brand text */}

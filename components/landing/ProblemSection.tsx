@@ -34,7 +34,7 @@ const pains = [
 
 export default function ProblemSection() {
   return (
-    <section className="py-20 lg:py-28 bg-slate-50" id="features">
+    <section className="py-20 lg:py-28 bg-slate-50" id="problems">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center max-w-2xl mx-auto mb-14">

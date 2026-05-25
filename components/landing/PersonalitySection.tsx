@@ -64,7 +64,7 @@ export default function PersonalitySection() {
   const [active, setActive] = useState(1);
 
   return (
-    <section className="py-20 lg:py-28 bg-slate-100">
+    <section className="py-20 lg:py-28 bg-slate-100" id="personality">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center max-w-2xl mx-auto mb-12">

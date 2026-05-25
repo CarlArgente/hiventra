@@ -4,7 +4,7 @@ export default function JobsLoading() {
   return (
     <>
       <Topbar title="Job Management" subtitle="Create, manage, and track all job postings" />
-      <main className="flex-1 overflow-y-auto p-6 space-y-4">
+      <main className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
         <div className="flex items-center justify-between">
           <div className="h-4 w-24 bg-slate-200 rounded animate-pulse" />
           <div className="h-9 w-36 bg-slate-200 rounded-lg animate-pulse" />

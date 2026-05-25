@@ -1,54 +1,28 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   CheckCircle,
   Clock,
   Circle,
   Bot,
-  Calendar,
-  FileText,
   ChevronRight,
   MessageSquare,
   Mic,
   Video,
-  Upload,
-  Trash2,
   CheckCheck,
-  Link2,
-  Phone,
-  MapPin,
-  Clock3,
-  Save,
-  User,
-  Loader2,
   ThumbsUp,
   ThumbsDown,
   Star,
   XCircle,
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
-import {
-  saveDocument,
-  deleteDocument,
-  updateCandidateProfile,
-} from "@/app/actions/portal";
-import type { PortalData, PortalDocument } from "@/app/actions/portal";
+import type { PortalData } from "@/app/actions/portal";
 
 const MODE_CONFIG = {
   text: { label: "Text Interview", icon: MessageSquare },
   voice: { label: "Voice Interview", icon: Mic },
   video: { label: "Video Interview", icon: Video },
 };
-
-const DOC_TYPES = [
-  { value: "portfolio", label: "Portfolio" },
-  { value: "certification", label: "Certification" },
-  { value: "cover_letter", label: "Cover Letter" },
-  { value: "id", label: "ID Document" },
-  { value: "other", label: "Other" },
-];
 
 const DECISION_STAGES = ["recommended", "hired", "rejected"];
 
@@ -84,13 +58,6 @@ function getStepStatus(
   return "upcoming";
 }
 
-function formatBytes(bytes: number | null) {
-  if (!bytes) return "";
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
 function daysUntil(dateStr: string | null): number | null {
   if (!dateStr) return null;
   const diff = new Date(dateStr).getTime() - Date.now();
@@ -106,79 +73,8 @@ function welcomeSubtext(stage: string): string {
 }
 
 export default function PortalHome({ data }: { data: PortalData }) {
-  const { candidate, job, interview, documents: initialDocs } = data;
+  const { candidate, job, interview } = data;
   const router = useRouter();
-
-  const [docs, setDocs] = useState<PortalDocument[]>(initialDocs);
-  useEffect(() => {
-    setDocs(initialDocs);
-  }, [initialDocs]);
-
-  const [uploading, setUploading] = useState(false);
-  const [docType, setDocType] = useState("portfolio");
-  const fileRef = useRef<HTMLInputElement>(null);
-
-  const [profile, setProfile] = useState({
-    full_name: candidate.full_name,
-    phone: candidate.phone ?? "",
-    linkedin_url: candidate.linkedin_url ?? "",
-    availability: candidate.availability ?? "",
-    preferred_location: candidate.preferred_location ?? "",
-  });
-  const [savingProfile, setSavingProfile] = useState(false);
-  const [profileMsg, setProfileMsg] = useState<string | null>(null);
-
-  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    try {
-      const supabase = createClient();
-      const ext = file.name.split(".").pop();
-      const path = `${candidate.id}/${crypto.randomUUID()}.${ext}`;
-      const { error: upErr } = await supabase.storage
-        .from("candidate-documents")
-        .upload(path, file);
-      if (upErr) throw new Error(upErr.message);
-
-      const result = await saveDocument({
-        candidate_id: candidate.id,
-        filename: file.name,
-        storage_path: path,
-        doc_type: docType,
-        file_size: file.size,
-      });
-      if (result.error) throw new Error(result.error);
-      router.refresh();
-    } catch (err: any) {
-      alert(err.message ?? "Upload failed");
-    } finally {
-      setUploading(false);
-      if (fileRef.current) fileRef.current.value = "";
-    }
-  }
-
-  async function handleDelete(doc: PortalDocument) {
-    if (!confirm(`Delete "${doc.filename}"?`)) return;
-    const result = await deleteDocument(doc.id, doc.storage_path);
-    if (result.error) return alert(result.error);
-    setDocs((prev) => prev.filter((d) => d.id !== doc.id));
-  }
-
-  async function handleSaveProfile(e: React.FormEvent) {
-    e.preventDefault();
-    setSavingProfile(true);
-    setProfileMsg(null);
-    const result = await updateCandidateProfile({
-      candidateId: candidate.id,
-      ...profile,
-    });
-    setSavingProfile(false);
-    setProfileMsg(
-      result.error ? `Error: ${result.error}` : "Saved successfully"
-    );
-    setTimeout(() => setProfileMsg(null), 3000);
-  }
 
   const modeConf =
     MODE_CONFIG[interview?.mode as keyof typeof MODE_CONFIG] ?? MODE_CONFIG.text;
@@ -429,280 +325,6 @@ export default function PortalHome({ data }: { data: PortalData }) {
       </div>
       )}
 
-      {!DECISION_STAGES.includes(candidate.stage) && <>
-      {/* Schedule & Documents quick view */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <Calendar className="w-4 h-4 text-indigo-500" />
-            <h3 className="font-bold text-slate-900 text-sm">
-              Interview Window
-            </h3>
-          </div>
-          {interview?.window_start && interview?.window_end ? (
-            <>
-              <p className="text-sm text-slate-600">
-                {new Date(interview.window_start).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                })}
-                {" – "}
-                {new Date(interview.window_end).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })}
-              </p>
-              <p className="text-xs text-slate-400 mt-2">
-                Complete your interview within this window.
-              </p>
-            </>
-          ) : (
-            <p className="text-sm text-slate-400 italic">
-              No window set — complete anytime.
-            </p>
-          )}
-        </div>
-
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <FileText className="w-4 h-4 text-indigo-500" />
-            <h3 className="font-bold text-slate-900 text-sm">Documents</h3>
-          </div>
-          {docs.length === 0 ? (
-            <p className="text-sm text-slate-500">No documents uploaded yet.</p>
-          ) : (
-            <p className="text-sm text-slate-600">
-              {docs.length} file{docs.length !== 1 ? "s" : ""} uploaded
-            </p>
-          )}
-          <button
-            onClick={() =>
-              document
-                .getElementById("doc-upload-section")
-                ?.scrollIntoView({ behavior: "smooth" })
-            }
-            className="mt-3 text-xs font-semibold text-indigo-600 hover:text-indigo-700 transition-colors"
-          >
-            + Upload portfolio or certifications
-          </button>
-        </div>
-      </div>
-
-      {/* Documents Upload */}
-      <div
-        id="doc-upload-section"
-        className="bg-white rounded-xl border border-slate-200 shadow-sm p-6"
-      >
-        <div className="flex items-center gap-2 mb-1">
-          <Upload className="w-4 h-4 text-indigo-500" />
-          <h2 className="font-bold text-slate-900">Upload Supporting Documents</h2>
-        </div>
-        <p className="text-xs text-slate-400 mb-4">
-          PDF, DOC, DOCX, JPG, PNG — max 10 MB
-        </p>
-        <div className="flex items-center gap-3 mb-5">
-          <select
-            value={docType}
-            onChange={(e) => setDocType(e.target.value)}
-            className="text-sm border border-slate-200 rounded-lg px-3 py-2 text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300"
-          >
-            {DOC_TYPES.map((t) => (
-              <option key={t.value} value={t.value}>
-                {t.label}
-              </option>
-            ))}
-          </select>
-          <label
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium cursor-pointer transition-all ${
-              uploading
-                ? "bg-slate-100 text-slate-400 cursor-not-allowed"
-                : "bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
-            }`}
-          >
-            {uploading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" /> Uploading…
-              </>
-            ) : (
-              <>
-                <Upload className="w-4 h-4" /> Choose File
-              </>
-            )}
-            <input
-              ref={fileRef}
-              type="file"
-              className="sr-only"
-              disabled={uploading}
-              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.ppt,.pptx"
-              onChange={handleUpload}
-            />
-          </label>
-        </div>
-
-        {docs.length > 0 && (
-          <div className="space-y-2">
-            {docs.map((doc) => (
-              <div
-                key={doc.id}
-                className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg"
-              >
-                <FileText className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-700 truncate">
-                    {doc.filename}
-                  </p>
-                  <p className="text-xs text-slate-400">
-                    {DOC_TYPES.find((t) => t.value === doc.doc_type)?.label ??
-                      doc.doc_type}
-                    {doc.file_size ? ` · ${formatBytes(doc.file_size)}` : ""}
-                  </p>
-                </div>
-                {doc.file_url && (
-                  <a
-                    href={doc.file_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-indigo-600 hover:text-indigo-700 font-medium flex-shrink-0"
-                  >
-                    View
-                  </a>
-                )}
-                <button
-                  onClick={() => handleDelete(doc)}
-                  className="p-1.5 rounded-md text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Profile Section */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <User className="w-4 h-4 text-indigo-500" />
-          <h2 className="font-bold text-slate-900">Your Profile</h2>
-        </div>
-        <form onSubmit={handleSaveProfile} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-medium text-slate-600 mb-1 block">
-                Full Name
-              </label>
-              <input
-                type="text"
-                value={profile.full_name}
-                onChange={(e) =>
-                  setProfile((p) => ({ ...p, full_name: e.target.value }))
-                }
-                className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-300"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-slate-600 mb-1 block">
-                Email
-              </label>
-              <input
-                type="email"
-                value={candidate.email}
-                readOnly
-                className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 text-slate-400 bg-slate-50 cursor-not-allowed"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-slate-600 mb-1 flex items-center gap-1">
-                <Phone className="w-3 h-3" /> Phone
-              </label>
-              <input
-                type="tel"
-                value={profile.phone}
-                onChange={(e) =>
-                  setProfile((p) => ({ ...p, phone: e.target.value }))
-                }
-                placeholder="+1 555 000 0000"
-                className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-300"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-slate-600 mb-1 flex items-center gap-1">
-                <Link2 className="w-3 h-3" /> LinkedIn URL
-              </label>
-              <input
-                type="url"
-                value={profile.linkedin_url}
-                onChange={(e) =>
-                  setProfile((p) => ({ ...p, linkedin_url: e.target.value }))
-                }
-                placeholder="https://linkedin.com/in/..."
-                className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-300"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-slate-600 mb-1 flex items-center gap-1">
-                <Clock3 className="w-3 h-3" /> Availability
-              </label>
-              <input
-                type="text"
-                value={profile.availability}
-                onChange={(e) =>
-                  setProfile((p) => ({ ...p, availability: e.target.value }))
-                }
-                placeholder="e.g. Immediate, 2 weeks notice"
-                className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-300"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-slate-600 mb-1 flex items-center gap-1">
-                <MapPin className="w-3 h-3" /> Preferred Location
-              </label>
-              <input
-                type="text"
-                value={profile.preferred_location}
-                onChange={(e) =>
-                  setProfile((p) => ({
-                    ...p,
-                    preferred_location: e.target.value,
-                  }))
-                }
-                placeholder="e.g. Remote, New York, London"
-                className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-300"
-              />
-            </div>
-          </div>
-          <p className="text-xs text-slate-400">
-            Your resume cannot be edited after submission.
-          </p>
-          <div className="flex items-center gap-3">
-            <button
-              type="submit"
-              disabled={savingProfile}
-              className="inline-flex items-center gap-2 bg-indigo-600 text-white text-sm font-medium px-5 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
-            >
-              {savingProfile ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Save className="w-4 h-4" />
-              )}
-              Save Changes
-            </button>
-            {profileMsg && (
-              <span
-                className={`text-xs font-medium ${
-                  profileMsg.startsWith("Error")
-                    ? "text-red-500"
-                    : "text-emerald-600"
-                }`}
-              >
-                {profileMsg}
-              </span>
-            )}
-          </div>
-        </form>
-      </div>
-      </>}
     </div>
   );
 }

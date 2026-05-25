@@ -12,9 +12,7 @@ export default function SignInPage() {
       <div className="relative w-full max-w-md">
         {/* Logo */}
         <div className="flex items-center justify-center gap-2.5 mb-10">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center shadow-lg">
-            <span className="text-white font-extrabold text-base">H</span>
-          </div>
+          <img src="/hiventra_icon.png" alt="Hiventra" className="w-9 h-9 rounded-xl object-cover shadow-lg" />
           <span className="font-extrabold text-xl text-white tracking-tight">Hiventra</span>
         </div>
 
@@ -49,12 +47,6 @@ export default function SignInPage() {
           </p>
         </div>
 
-        <p className="text-center text-slate-500 text-sm mt-6">
-          Don&apos;t have an account?{" "}
-          <a href="#" className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors">
-            Start free trial
-          </a>
-        </p>
       </div>
     </div>
   );

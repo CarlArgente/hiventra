@@ -64,8 +64,16 @@ export async function saveCarlConfig(
   await supabase.auth.getUser();
   const { error } = await supabase.from("jobs").update(config).eq("id", jobId);
   if (error) return { error: error.message };
+
+  await supabase
+    .from("interviews")
+    .update({ mode: config.carl_mode })
+    .eq("job_id", jobId)
+    .in("status", ["pending", "invited"]);
+
   revalidatePath("/dashboard/carl-config");
   revalidatePath("/dashboard/jobs");
+  revalidatePath("/dashboard/pipeline");
   return { success: true };
 }
 
@@ -88,7 +96,14 @@ export async function updateJob(id: string, payload: JobPayload) {
   const { error } = await supabase.from("jobs").update(payload).eq("id", id);
   if (error) return { error: error.message };
 
+  await supabase
+    .from("interviews")
+    .update({ mode: payload.carl_mode })
+    .eq("job_id", id)
+    .in("status", ["pending", "invited"]);
+
   revalidatePath("/dashboard/jobs");
+  revalidatePath("/dashboard/pipeline");
   return { success: true };
 }
 

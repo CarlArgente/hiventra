@@ -189,7 +189,7 @@ export default function CarlConfigClient({ jobs }: Props) {
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <div className="max-w-6xl mx-auto px-6 py-6">
+      <div className="w-full px-4 sm:px-6 py-4 sm:py-6">
         {/* Job selector */}
         <div className="mb-6">
           <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
@@ -211,10 +211,9 @@ export default function CarlConfigClient({ jobs }: Props) {
           </div>
         </div>
 
-        {/* Two-column layout */}
-        <div className="flex gap-6 items-start">
-          {/* LEFT — Config form */}
-          <div className="flex-1 min-w-0 space-y-6">
+        {/* Config form */}
+        <div className="space-y-6">
+          <div className="space-y-6">
 
             {/* Section 1 — Interview Mode */}
             <section className="bg-white rounded-xl border border-slate-200 p-5">
@@ -388,85 +387,72 @@ export default function CarlConfigClient({ jobs }: Props) {
               )}
             </section>
 
-            {/* Footer */}
-            <div className="flex items-center justify-between pb-6">
-              <button
-                onClick={restoreDefaults}
-                className="text-xs text-slate-500 hover:text-indigo-600 underline underline-offset-2 transition-colors"
-              >
-                Restore Defaults
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={isPending || !selectedJobId}
-                className={cn(
-                  "px-5 py-2 rounded-lg text-sm font-semibold transition-all duration-150",
-                  saved
-                    ? "bg-emerald-500 text-white"
-                    : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm",
-                  (isPending || !selectedJobId) && "opacity-60 cursor-not-allowed"
-                )}
-              >
-                {isPending ? "Saving…" : saved ? "✓ Saved" : "Save Configuration"}
-              </button>
-            </div>
           </div>
 
-          {/* RIGHT — Sticky preview */}
-          <div className="w-72 shrink-0 sticky top-6">
-            <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-5">
-              {/* Header */}
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center shadow-md shrink-0">
-                  <span className="text-white font-extrabold text-sm">C</span>
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-slate-800">Carl Preview</p>
-                  <p className="text-[10px] text-slate-500">Live sample based on settings</p>
-                </div>
+          {/* Carl Preview — full width */}
+          <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-5">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center shadow-md shrink-0">
+                <span className="text-white font-extrabold text-sm">C</span>
               </div>
-
-              {/* Sample question */}
-              <div className="bg-white rounded-xl border border-indigo-100 p-4 mb-4">
-                <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">
-                  Sample Opening Question
-                </p>
-                <blockquote className="text-xs text-slate-700 italic leading-relaxed">
-                  "{sampleQuestion}"
-                </blockquote>
+              <div>
+                <p className="text-sm font-bold text-slate-800">Carl Preview</p>
+                <p className="text-[10px] text-slate-500">Live sample based on settings</p>
               </div>
-
-              {/* Summary badges */}
-              <div className="flex flex-wrap gap-1.5 mb-3">
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-indigo-100 text-indigo-700">
-                  {personalityLabel}
-                </span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-indigo-100 text-indigo-700">
-                  {modeLabel}
-                </span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-indigo-100 text-indigo-700">
-                  {duration} min
-                </span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-indigo-100 text-indigo-700">
-                  {maxQuestions} questions
-                </span>
-              </div>
-
-              {/* Topics summary */}
-              {topics.length > 0 && (
-                <div className="flex flex-wrap gap-1 mb-3">
-                  {topics.map((t) => (
-                    <span key={t} className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-white border border-indigo-200 text-indigo-600">
-                      {t}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              <p className="text-[9px] text-slate-400 leading-relaxed">
-                Carl generates all questions dynamically — this is a sample.
-              </p>
             </div>
+
+            <div className="bg-white rounded-xl border border-indigo-100 p-4 mb-4">
+              <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                Sample Opening Question
+              </p>
+              <blockquote className="text-sm text-slate-700 italic leading-relaxed">
+                "{sampleQuestion}"
+              </blockquote>
+            </div>
+
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">{personalityLabel}</span>
+              <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">{modeLabel}</span>
+              <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">{duration} min</span>
+              <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">{maxQuestions} questions</span>
+            </div>
+
+            {topics.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-3">
+                {topics.map((t) => (
+                  <span key={t} className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-white border border-indigo-200 text-indigo-600">
+                    {t}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <p className="text-[10px] text-slate-400 leading-relaxed">
+              Carl generates all questions dynamically — this is a sample.
+            </p>
+          </div>
+
+          {/* Footer */}
+          <div className="flex items-center justify-between pb-6">
+            <button
+              onClick={restoreDefaults}
+              className="text-xs text-slate-500 hover:text-indigo-600 underline underline-offset-2 transition-colors"
+            >
+              Restore Defaults
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={isPending || !selectedJobId}
+              className={cn(
+                "px-5 py-2 rounded-lg text-sm font-semibold transition-all duration-150",
+                saved
+                  ? "bg-emerald-500 text-white"
+                  : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm",
+                (isPending || !selectedJobId) && "opacity-60 cursor-not-allowed"
+              )}
+            >
+              {isPending ? "Saving…" : saved ? "✓ Saved" : "Save Configuration"}
+            </button>
           </div>
         </div>
       </div>

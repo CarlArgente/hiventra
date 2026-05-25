@@ -26,7 +26,7 @@ const companies = ["TechNova", "CloudBase", "Orion Systems", "Meridian Financial
 
 export default function TestimonialsSection() {
   return (
-    <section className="py-20 lg:py-28 bg-white">
+    <section className="py-20 lg:py-28 bg-white" id="testimonials">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center max-w-2xl mx-auto mb-14">

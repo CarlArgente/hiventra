@@ -3,12 +3,16 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Mic, Camera, CheckCircle2, Clock, ChevronRight, Square } from "lucide-react";
+import { SimliClient, generateSimliSessionToken, generateIceServers } from "simli-client";
 import {
   startInterview,
   submitAnswer,
   completeInterview,
   type InterviewData,
 } from "@/app/actions/interviews";
+
+const SIMLI_API_KEY = process.env.NEXT_PUBLIC_SIMLI_API_KEY ?? "";
+const SIMLI_FACE_ID = process.env.NEXT_PUBLIC_SIMLI_FACE_ID ?? "tmp9i8bbkX8";
 
 type Phase = "preCheck" | "starting" | "welcome" | "active" | "analyzing" | "complete";
 type RecordingState = "idle" | "recording" | "transcribing" | "recorded";
@@ -34,12 +38,12 @@ function formatTime(s: number) {
 }
 
 function CarlAvatar({ size = "md", speaking = false }: { size?: "sm" | "md" | "lg"; speaking?: boolean }) {
-  const cls = { sm: "w-9 h-9 text-base", md: "w-14 h-14 text-xl", lg: "w-20 h-20 text-3xl" };
+  const dim = { sm: "w-9 h-9", md: "w-14 h-14", lg: "w-20 h-20" };
   return (
     <div className="relative flex-shrink-0">
-      {speaking && <div className="absolute inset-0 rounded-full bg-indigo-500/40 animate-ping" />}
-      <div className={`${cls[size]} rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/30 ring-2 ${speaking ? "ring-indigo-400/70" : "ring-indigo-400/20"} relative z-10`}>
-        <span className="font-extrabold text-white">C</span>
+      {speaking && <div className={`absolute inset-0 rounded-full bg-indigo-500/40 animate-ping`} />}
+      <div className={`${dim[size]} rounded-full overflow-hidden shadow-lg shadow-indigo-500/30 ring-2 ${speaking ? "ring-indigo-400/70" : "ring-indigo-400/20"} relative z-10`}>
+        <img src="/carl_avatar.png" alt="Carl" className="w-full h-full object-cover" />
       </div>
     </div>
   );
@@ -97,6 +101,24 @@ function DeviceRow({ label, status }: { label: string; status: DeviceStatus }) {
   );
 }
 
+async function blobToPCM16(blob: Blob): Promise<Uint8Array> {
+  const arrayBuffer = await blob.arrayBuffer();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ctx = new ((window as any).AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
+  try {
+    const buf = await ctx.decodeAudioData(arrayBuffer);
+    const channel = buf.getChannelData(0);
+    const pcm = new Int16Array(channel.length);
+    for (let i = 0; i < channel.length; i++) {
+      const s = Math.max(-1, Math.min(1, channel[i]));
+      pcm[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+    }
+    return new Uint8Array(pcm.buffer);
+  } finally {
+    await ctx.close();
+  }
+}
+
 export default function InterviewRoom({ interview }: { interview: InterviewData }) {
   const router = useRouter();
   const job = interview.job!;
@@ -131,10 +153,13 @@ export default function InterviewRoom({ interview }: { interview: InterviewData 
   const [sttBlocked, setSttBlocked] = useState(false);
   const [browserWarning, setBrowserWarning] = useState(false);
   const [welcomeMsg, setWelcomeMsg] = useState("");
-  // On refresh, browser autoplay is blocked until a user gesture — require a click to resume
   const [needsResumeClick, setNeedsResumeClick] = useState(
-    () => phase === "active" && mode === "voice" && interview.status === "started"
+    () => phase === "active" && (mode === "voice" || mode === "video") && interview.status === "started"
   );
+
+  // Simli state (video mode)
+  const [simliConnected, setSimliConnected] = useState(false);
+  const simliConnectedRef = useRef(false);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const recTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -144,7 +169,7 @@ export default function InterviewRoom({ interview }: { interview: InterviewData 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const speechRef = useRef<any>(null);
   const transcriptRef = useRef("");
-  const confirmedTextRef = useRef(""); // finalized speech across SpeechRecognition restarts
+  const confirmedTextRef = useRef("");
   const chunksRef = useRef<Blob[]>([]);
   const isRecordingRef = useRef(false);
   const pendingVoiceAnswerRef = useRef("");
@@ -154,7 +179,12 @@ export default function InterviewRoom({ interview }: { interview: InterviewData 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const startRecordingRef = useRef<(() => Promise<void>) | null>(null);
 
-  // Keep refs in sync with latest render values so async callbacks never use stale closures
+  // Simli refs (imperative elements so they persist across phase transitions)
+  const simliRef = useRef<SimliClient | null>(null);
+  const simliVideoEl = useRef<HTMLVideoElement | null>(null);
+  const simliAudioEl = useRef<HTMLAudioElement | null>(null);
+  const simliContainerRef = useRef<HTMLDivElement | null>(null);
+
   questionIndexRef.current = questionIndex;
 
   useEffect(() => {
@@ -186,18 +216,95 @@ export default function InterviewRoom({ interview }: { interview: InterviewData 
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [phase]);
 
+  // Clean up audio on unmount
   useEffect(() => {
-    return () => { if (audioRef.current) audioRef.current.pause(); };
+    return () => {
+      if (audioRef.current) audioRef.current.pause();
+    };
   }, []);
+
+  // Clean up Simli on unmount
+  useEffect(() => {
+    return () => {
+      simliRef.current?.stop().catch(() => {});
+      simliRef.current = null;
+      simliVideoEl.current?.remove();
+      simliVideoEl.current = null;
+      simliAudioEl.current?.remove();
+      simliAudioEl.current = null;
+    };
+  }, []);
+
+  // Move Simli video element into its container when the active video layout mounts
+  // Also re-runs when simliConnected changes, in case Simli connected after the phase transition
+  useEffect(() => {
+    if (phase !== "active" || mode !== "video") return;
+    if (!simliContainerRef.current || !simliVideoEl.current) return;
+    const container = simliContainerRef.current;
+    const video = simliVideoEl.current;
+    video.style.cssText = "width:100%;height:100%;object-fit:cover;position:absolute;inset:0;";
+    container.appendChild(video);
+    return () => {
+      // Stash back to body so the element (and WebRTC stream) survives
+      video.style.cssText = "position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;";
+      document.body.appendChild(video);
+    };
+  }, [phase, mode, simliConnected]);
+
+  const initSimli = async () => {
+    if (!SIMLI_API_KEY || simliRef.current) return;
+    try {
+      // Create elements imperatively so they persist across React phase transitions
+      const video = document.createElement("video");
+      video.autoplay = true;
+      video.muted = true;
+      (video as HTMLVideoElement & { playsInline: boolean }).playsInline = true;
+      video.style.cssText = "position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;";
+      document.body.appendChild(video);
+
+      const audio = document.createElement("audio");
+      audio.autoplay = true;
+      document.body.appendChild(audio);
+
+      simliVideoEl.current = video;
+      simliAudioEl.current = audio;
+
+      const [tokenData, iceServers] = await Promise.all([
+        generateSimliSessionToken({
+          apiKey: SIMLI_API_KEY,
+          config: {
+            faceId: SIMLI_FACE_ID,
+            handleSilence: true,
+            maxSessionLength: 3600,
+            maxIdleTime: 600,
+            model: "fasttalk",
+          },
+        }),
+        generateIceServers(SIMLI_API_KEY),
+      ]);
+
+      const client = new SimliClient(tokenData.session_token, video, audio, iceServers);
+      simliRef.current = client;
+
+      client.on("start", () => { simliConnectedRef.current = true; setSimliConnected(true); });
+      client.on("speaking", () => setCarlSpeaking(true));
+      client.on("silent", () => setCarlSpeaking(false));
+
+      await client.start();
+    } catch {
+      // Simli unavailable — video mode falls back to avatar placeholder + audio
+    }
+  };
 
   const handleResume = async () => {
     setNeedsResumeClick(false);
+    if (mode === "video") await initSimli();
     await speakText(questions[questionIndex]);
     startRecordingRef.current?.();
   };
 
   const speakText = (text: string): Promise<void> => {
-    if (mode !== "voice") return Promise.resolve();
+    if (mode === "text") return Promise.resolve();
     if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
     setCarlSpeaking(true);
     return new Promise((resolve) => {
@@ -209,11 +316,8 @@ export default function InterviewRoom({ interview }: { interview: InterviewData 
         resolve();
       };
 
-      // Safety: unblock after 12s regardless of TTS state
       const safetyTimer = setTimeout(done, 12000);
-
       const controller = new AbortController();
-      // Abort fetch after 11s (slightly under safety timer)
       const fetchTimer = setTimeout(() => controller.abort(), 11000);
 
       fetch("/api/tts", {
@@ -223,26 +327,39 @@ export default function InterviewRoom({ interview }: { interview: InterviewData 
         body: JSON.stringify({ text }),
       })
         .then((r) => (r.ok ? r.blob() : Promise.reject()))
-        .then((blob) => {
+        .then(async (blob) => {
           clearTimeout(fetchTimer);
           clearTimeout(safetyTimer);
-          const url = URL.createObjectURL(blob);
-          const audio = new Audio(url);
-          audioRef.current = audio;
-          audio.onended = () => { URL.revokeObjectURL(url); done(); };
-          audio.onerror = () => { URL.revokeObjectURL(url); done(); };
-          audio.play().catch(() => {
-            // Browser blocked autoplay — give a 2s reading window then continue
-            URL.revokeObjectURL(url);
-            setTimeout(done, 2000);
-          });
+
+          if (mode === "video" && simliRef.current && simliConnectedRef.current) {
+            try {
+              const pcm = await blobToPCM16(blob);
+              // Duration estimate: PCM16 = 2 bytes/sample at 16 kHz
+              const durationMs = (pcm.byteLength / 2 / 16000) * 1000;
+              simliRef.current.sendAudioData(pcm);
+              // Resolve after estimated duration + latency buffer
+              setTimeout(done, durationMs + 800);
+            } catch {
+              done();
+            }
+          } else {
+            // Voice mode (or video before Simli connects): play audio directly
+            const url = URL.createObjectURL(blob);
+            const audio = new Audio(url);
+            audioRef.current = audio;
+            audio.onended = () => { URL.revokeObjectURL(url); done(); };
+            audio.onerror = () => { URL.revokeObjectURL(url); done(); };
+            audio.play().catch(() => {
+              URL.revokeObjectURL(url);
+              setTimeout(done, 2000);
+            });
+          }
         })
         .catch(() => {
-        clearTimeout(fetchTimer);
-        clearTimeout(safetyTimer);
-        // TTS failed — hold for 3 s so the user can read the question before recording starts
-        setTimeout(done, 3000);
-      });
+          clearTimeout(fetchTimer);
+          clearTimeout(safetyTimer);
+          setTimeout(done, 3000);
+        });
     });
   };
 
@@ -271,12 +388,10 @@ export default function InterviewRoom({ interview }: { interview: InterviewData 
   const doComplete = async () => {
     if (timerRef.current) clearInterval(timerRef.current);
     setPhase("analyzing");
-    // completeInterview runs analysis server-side before returning
     await completeInterview(interview.id);
     setPhase("complete");
   };
 
-  // Core submit logic — reads questionIndex from ref so async callbacks never use stale closures
   const submitAndAdvance = async (capturedAnswer: string) => {
     const capturedIndex = questionIndexRef.current;
     const isLast = capturedIndex + 1 >= questions.length;
@@ -298,7 +413,7 @@ export default function InterviewRoom({ interview }: { interview: InterviewData 
 
     if (ack) {
       setCarlAck(ack);
-      if (mode === "voice") await speakText(ack);
+      if (mode !== "text") await speakText(ack);
       else await new Promise((resolve) => setTimeout(resolve, 2800));
       setCarlAck(null);
     }
@@ -310,7 +425,7 @@ export default function InterviewRoom({ interview }: { interview: InterviewData 
 
     const nextIdx = capturedIndex + 1;
     setQuestionIndex(nextIdx);
-    if (mode === "voice") {
+    if (mode !== "text") {
       await speakText(questions[nextIdx]);
       startRecordingRef.current?.();
     }
@@ -345,9 +460,12 @@ export default function InterviewRoom({ interview }: { interview: InterviewData 
     await startInterview(interview.id, finalQuestions);
     setPhase("welcome");
 
+    // Start Simli connection in background while welcome plays
+    if (mode === "video") initSimli();
+
     const welcomeText = `Hi ${firstName}! Welcome to your interview for the ${job.title} role at ${job.company}. I'm Carl, your AI interviewer. I'll ask you ${finalQuestions.length} questions — take your time with each answer, there's no rush. Let's get started!`;
     setWelcomeMsg(welcomeText);
-    if (mode === "voice") {
+    if (mode !== "text") {
       await speakText(welcomeText);
     } else {
       await new Promise((r) => setTimeout(r, 4000));
@@ -355,7 +473,7 @@ export default function InterviewRoom({ interview }: { interview: InterviewData 
 
     setPhase("active");
     await speakText(finalQuestions[0]);
-    if (mode === "voice") startRecording();
+    if (mode !== "text") startRecording();
   };
 
   const handleSubmit = async () => {
@@ -379,7 +497,6 @@ export default function InterviewRoom({ interview }: { interview: InterviewData 
     setRecSeconds(0);
     recTimerRef.current = setInterval(() => setRecSeconds((s) => s + 1), 1000);
 
-    // Video mode: also capture MediaRecorder stream for display
     if (mode === "video") {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
@@ -391,11 +508,9 @@ export default function InterviewRoom({ interview }: { interview: InterviewData 
       } catch { /* permission denied */ }
     }
 
-    // Web Speech API — primary transcription for voice and video modes
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) {
-      // Browser doesn't support Web Speech API at all
       setSttBlocked(true);
       setRecording("idle");
       isRecordingRef.current = false;
@@ -408,10 +523,7 @@ export default function InterviewRoom({ interview }: { interview: InterviewData 
     recognition.interimResults = true;
     recognition.lang = "en-US";
 
-    // sessionBuffer accumulates finals within the current recognition session.
-    // On silence-restart, it's seeded from confirmedTextRef so nothing is lost.
     let sessionBuffer = "";
-    // Prevents infinite restart loop when a permanent error (e.g. service blocked) occurs
     let canRestart = true;
 
     recognition.onresult = (event: { results: SpeechRecognitionResultList; resultIndex: number }) => {
@@ -429,7 +541,10 @@ export default function InterviewRoom({ interview }: { interview: InterviewData 
         confirmedTextRef.current = sessionBuffer;
       }
       transcriptRef.current = (sessionBuffer + (interim ? " " + interim : "")).trim();
-      setTranscript(transcriptRef.current);
+      // Only update UI while actively recording — prevents post-stop events from overwriting the finalized transcript
+      if (isRecordingRef.current) {
+        setTranscript(transcriptRef.current);
+      }
     };
 
     recognition.onend = () => {
@@ -461,7 +576,6 @@ export default function InterviewRoom({ interview }: { interview: InterviewData 
     if (recTimerRef.current) clearInterval(recTimerRef.current);
     if (videoRef.current) videoRef.current.srcObject = null;
 
-    // Stop video MediaRecorder if running
     if (mediaRef.current) {
       try {
         mediaRef.current.stream.getTracks().forEach((t) => t.stop());
@@ -473,7 +587,6 @@ export default function InterviewRoom({ interview }: { interview: InterviewData 
     setRecording("transcribing");
 
     if (!speechRef.current) {
-      // No recognition running — use whatever was captured
       const text = confirmedTextRef.current || transcriptRef.current;
       pendingVoiceAnswerRef.current = text;
       setTranscript(text);
@@ -485,19 +598,17 @@ export default function InterviewRoom({ interview }: { interview: InterviewData 
     speechRef.current = null;
 
     const finalizeTranscript = () => {
-      const text = confirmedTextRef.current.trim();
+      const text = (confirmedTextRef.current || transcriptRef.current).trim();
       pendingVoiceAnswerRef.current = text;
       setTranscript(text);
       setRecording("recorded");
     };
 
-    // Override onend: fires after stop() flushes any pending results
     recognition.onend = finalizeTranscript;
 
     try {
-      recognition.stop(); // fires final onresult (if any) then onend
+      recognition.stop();
     } catch {
-      // recognition was already inactive (e.g. stopped due to silence and not yet restarted)
       finalizeTranscript();
     }
   };
@@ -505,7 +616,6 @@ export default function InterviewRoom({ interview }: { interview: InterviewData 
   const progress = questions.length ? (questionIndex / questions.length) * 100 : 0;
   const currentQ = questions[questionIndex] ?? "";
 
-  // Bubble content: thinking → ack → question
   const bubbleContent = isThinking ? null : carlAck ?? currentQ;
   const carlLabel = carlSpeaking ? "Carl is speaking…" : carlAck ? "Carl · responding" : "Carl · AI Interviewer";
 
@@ -683,7 +793,7 @@ export default function InterviewRoom({ interview }: { interview: InterviewData 
     );
   }
 
-  // --- RESUME GATE (voice only — user click unlocks browser autoplay) ---
+  // --- RESUME GATE (voice/video — user click unlocks browser autoplay) ---
   if (phase === "active" && needsResumeClick) {
     return (
       <div className="fixed inset-0 z-50 bg-slate-900 flex items-center justify-center px-4">
@@ -710,7 +820,183 @@ export default function InterviewRoom({ interview }: { interview: InterviewData 
     );
   }
 
-  // --- ACTIVE ---
+  // --- ACTIVE · VIDEO ---
+  if (phase === "active" && mode === "video") {
+    return (
+      <div className="fixed inset-0 z-50 bg-slate-950 flex flex-col overflow-hidden">
+        {/* Progress bar */}
+        <div className="h-1 bg-slate-800 flex-shrink-0">
+          <div className="h-full bg-indigo-500 transition-all duration-500" style={{ width: `${progress}%` }} />
+        </div>
+
+        {/* Top bar */}
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-slate-800 flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <img src="/hiventra_icon.png" alt="Hiventra" className="w-6 h-6 rounded-md object-cover" />
+            <span className="font-extrabold text-white text-sm hidden sm:block">Hiventra</span>
+          </div>
+          <span className="text-slate-300 text-sm font-semibold">
+            Question {Math.min(questionIndex + 1, questions.length)} of {questions.length}
+          </span>
+          <div className="flex items-center gap-1.5 text-slate-400">
+            <Clock className="w-3.5 h-3.5" />
+            <span className="text-sm font-mono">{formatTime(elapsed)}</span>
+          </div>
+        </div>
+
+        {/* Main: avatar left, controls right */}
+        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+
+          {/* Carl avatar panel */}
+          <div className="relative lg:flex-1 h-52 sm:h-72 lg:h-auto bg-slate-950 overflow-hidden flex-shrink-0">
+            {/* Simli video is appended here imperatively via useEffect */}
+            <div ref={simliContainerRef} className="absolute inset-0" />
+
+            {/* Fallback avatar while Simli connects */}
+            {!simliConnected && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 gap-3">
+                <CarlAvatar size="lg" speaking={carlSpeaking} />
+                <p className="text-slate-500 text-xs">
+                  {SIMLI_API_KEY ? "Connecting avatar…" : "Configure NEXT_PUBLIC_SIMLI_API_KEY to enable avatar"}
+                </p>
+              </div>
+            )}
+
+            {/* Carl name label */}
+            <div className="absolute top-3 left-3 z-10 bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1.5 flex items-center gap-2">
+              <span className={`w-2 h-2 rounded-full flex-shrink-0 ${carlSpeaking ? "bg-green-400 animate-pulse" : "bg-slate-500"}`} />
+              <span className="text-white text-xs font-medium">{carlLabel}</span>
+            </div>
+
+            {/* Candidate self-view PiP */}
+            <div className="absolute bottom-3 right-3 z-10 w-28 h-20 rounded-xl overflow-hidden border-2 border-slate-600 bg-slate-800 shadow-lg">
+              <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover" />
+              {recording !== "recording" && (
+                <div className="absolute inset-0 flex items-center justify-center bg-slate-900/70">
+                  <Camera className="w-5 h-5 text-slate-500" />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right panel: question + recording */}
+          <div className="lg:w-96 flex flex-col bg-slate-900 border-t lg:border-t-0 lg:border-l border-slate-800 overflow-y-auto">
+            <div className="flex-1 p-4 sm:p-5 flex flex-col gap-4">
+
+              {/* Question bubble */}
+              <div className="bg-white rounded-2xl rounded-tl-sm p-4 shadow-sm min-h-[80px]">
+                {isThinking ? (
+                  <ThinkingDots />
+                ) : carlAck ? (
+                  <p className="text-slate-700 text-sm leading-relaxed italic">{carlAck}</p>
+                ) : (
+                  <p className="text-slate-900 text-sm font-medium leading-relaxed">{currentQ}</p>
+                )}
+              </div>
+
+              {/* Recording controls — same UX as voice mode */}
+              {!carlAck && !isThinking && (
+                <div className="flex flex-col items-center gap-4 py-2">
+                  <Waveform active={recording === "recording"} />
+
+                  {recording === "idle" && (
+                    <>
+                      {carlSpeaking ? (
+                        <p className="text-indigo-300 text-sm text-center">Carl is speaking — recording starts automatically…</p>
+                      ) : sttBlocked ? (
+                        <div className="flex flex-col items-center gap-3 text-center">
+                          <p className="text-amber-400 text-sm font-medium">Speech recognition blocked</p>
+                          <p className="text-slate-500 text-xs leading-relaxed max-w-xs">
+                            Your browser is blocking the Web Speech API. Try <strong className="text-slate-400">Chrome / Edge</strong>, or disable &quot;Block fingerprinting&quot; in Brave.
+                          </p>
+                          <button onClick={() => { setSttBlocked(false); startRecording(); }} className="text-indigo-400 text-xs underline">
+                            Try again
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <p className="text-slate-500 text-sm">Tap to start recording your answer</p>
+                          <button
+                            onClick={startRecording}
+                            className="w-14 h-14 rounded-full bg-indigo-600 hover:bg-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-600/30 transition-colors"
+                          >
+                            <Mic className="w-5 h-5 text-white" />
+                          </button>
+                        </>
+                      )}
+                    </>
+                  )}
+
+                  {recording === "recording" && (
+                    <>
+                      <p className="text-red-400 text-sm font-medium">Recording… {formatTime(recSeconds)}</p>
+                      <button onClick={stopRecording} className="w-14 h-14 rounded-full bg-red-600 hover:bg-red-500 flex items-center justify-center shadow-lg shadow-red-600/30 transition-colors">
+                        <Square className="w-5 h-5 text-white" />
+                      </button>
+                      {transcript && <p className="text-slate-400 text-xs text-center max-w-xs italic">&ldquo;{transcript}&rdquo;</p>}
+                    </>
+                  )}
+
+                  {recording === "transcribing" && (
+                    <>
+                      <p className="text-indigo-300 text-sm">Processing your answer…</p>
+                      <div className="w-14 h-14 rounded-full bg-indigo-600/30 flex items-center justify-center ring-2 ring-indigo-400/30">
+                        <div className="w-5 h-5 border-2 border-indigo-400/50 border-t-indigo-400 rounded-full animate-spin" />
+                      </div>
+                    </>
+                  )}
+
+                  {recording === "recorded" && (
+                    <>
+                      <p className="text-emerald-400 text-sm font-medium">Answer transcribed — review before submitting</p>
+                      {transcript ? (
+                        <div className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3">
+                          <p className="text-slate-400 text-xs uppercase tracking-wider mb-1">Your answer</p>
+                          <p className="text-white text-sm leading-relaxed">&ldquo;{transcript}&rdquo;</p>
+                        </div>
+                      ) : (
+                        <p className="text-slate-500 text-xs text-center">No transcription detected. Please re-record.</p>
+                      )}
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => { setRecording("idle"); setAnswer(""); setTranscript(""); pendingVoiceAnswerRef.current = ""; }}
+                          className="flex items-center gap-2 text-slate-400 hover:text-white text-sm border border-slate-700 px-4 py-2 rounded-xl transition-colors"
+                        >
+                          <Mic className="w-4 h-4" /> Re-record
+                        </button>
+                        <button
+                          onClick={() => { submitAndAdvanceRef.current?.(pendingVoiceAnswerRef.current); }}
+                          disabled={isSubmitting || !transcript}
+                          className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white font-semibold px-5 py-2 rounded-xl text-sm transition-colors"
+                        >
+                          {isSubmitting ? "Submitting…" : "Submit"}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Skip */}
+            {!carlAck && !isThinking && (
+              <div className="px-5 pb-4 text-center">
+                <button
+                  onClick={handleSkip}
+                  disabled={isSubmitting}
+                  className="text-slate-500 hover:text-slate-400 text-xs transition-colors disabled:opacity-30"
+                >
+                  Skip this question
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- ACTIVE · TEXT / VOICE ---
   return (
     <div className="fixed inset-0 z-50 bg-slate-900 flex flex-col overflow-hidden">
       {/* Progress bar */}
@@ -892,47 +1178,6 @@ export default function InterviewRoom({ interview }: { interview: InterviewData 
                       </div>
                     </>
                   )}
-                </div>
-              )}
-
-              {mode === "video" && (
-                <div className="flex flex-col items-center gap-4 py-4">
-                  <div className="relative bg-slate-800 rounded-2xl overflow-hidden w-full max-w-xs aspect-video border border-slate-700">
-                    <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover" />
-                    {recording === "recording" && (
-                      <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-red-600/90 px-2 py-1 rounded-full">
-                        <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
-                        <span className="text-white text-xs font-medium">{formatTime(recSeconds)}</span>
-                      </div>
-                    )}
-                    {recording === "idle" && (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <Camera className="w-8 h-8 text-slate-600" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex gap-3">
-                    {recording === "idle" && (
-                      <button onClick={startRecording} disabled={isThinking} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors">
-                        <Camera className="w-4 h-4" /> Start Recording
-                      </button>
-                    )}
-                    {recording === "recording" && (
-                      <button onClick={stopRecording} className="flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors">
-                        <Square className="w-4 h-4" /> Stop
-                      </button>
-                    )}
-                    {recording === "recorded" && (
-                      <>
-                        <button onClick={() => { setRecording("idle"); setAnswer(""); setTranscript(""); }} className="flex items-center gap-2 text-slate-400 hover:text-white border border-slate-700 px-4 py-2.5 rounded-xl text-sm transition-colors">
-                          <Camera className="w-4 h-4" /> Re-record
-                        </button>
-                        <button onClick={handleSubmit} disabled={isSubmitting} className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-colors">
-                          {isSubmitting ? "Submitting…" : "Submit Answer"}
-                        </button>
-                      </>
-                    )}
-                  </div>
                 </div>
               )}
             </div>

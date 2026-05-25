@@ -28,10 +28,11 @@ export async function submitUploadBatch(jobId: string, files: UploadedFile[]) {
 
   const { data: jobRow } = await supabase
     .from("jobs")
-    .select("title")
+    .select("title, carl_mode")
     .eq("id", jobId)
     .single();
   const jobTitle = (jobRow as any)?.title ?? "Unknown Job";
+  const jobMode = (jobRow as any)?.carl_mode ?? "text";
 
   const results: { uploadId: string; candidateId: string | null }[] = [];
 
@@ -61,6 +62,13 @@ export async function submitUploadBatch(jobId: string, files: UploadedFile[]) {
       candidateId = candidate?.id ?? null;
 
       if (candidateId) {
+        await supabase.from("interviews").insert({
+          candidate_id: candidateId,
+          job_id: jobId,
+          mode: jobMode,
+          status: "pending",
+        });
+
         await writeAuditEntry({
           event_type: "resume_scored",
           candidate_id: candidateId,

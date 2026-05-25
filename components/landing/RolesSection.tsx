@@ -59,7 +59,7 @@ export default function RolesSection() {
   const role = roles[active];
 
   return (
-    <section className="py-20 lg:py-28 bg-white">
+    <section className="py-20 lg:py-28 bg-white" id="roles">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center max-w-2xl mx-auto mb-12">
@@ -107,7 +107,7 @@ export default function RolesSection() {
               href="#"
               className="mt-8 inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-semibold px-7 py-3.5 rounded-full shadow-btn hover:-translate-y-0.5 transition-all duration-200"
             >
-              Start Free Trial →
+              Start Now →
             </a>
           </div>
 

@@ -1,6 +1,10 @@
 "use client";
 
-import { Bell, Search } from "lucide-react";
+import { Bell, LogOut, Menu } from "lucide-react";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
+import { useMobileNav } from "./DashboardShell";
 
 interface TopbarProps {
   title: string;
@@ -8,23 +12,58 @@ interface TopbarProps {
 }
 
 export default function Topbar({ title, subtitle }: TopbarProps) {
+  const router = useRouter();
+  const { openMobileNav } = useMobileNav();
+
+  async function handleSignOut() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/signin");
+  }
+
   return (
-    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0">
-      <div>
-        <h1 className="text-lg font-bold text-slate-900">{title}</h1>
-        {subtitle && <p className="text-xs text-slate-500">{subtitle}</p>}
-      </div>
-      <div className="flex items-center gap-3">
-        <button className="w-9 h-9 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-colors">
-          <Search className="w-4 h-4" />
+    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 shrink-0">
+      <div className="flex items-center gap-3 min-w-0">
+        {/* Hamburger — mobile only */}
+        <button
+          onClick={openMobileNav}
+          className="lg:hidden p-2 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors shrink-0"
+          aria-label="Open menu"
+        >
+          <Menu className="w-5 h-5" />
         </button>
+        <div className="min-w-0">
+          <h1 className="text-base sm:text-lg font-bold text-slate-900 truncate">{title}</h1>
+          {subtitle && <p className="text-xs text-slate-500 truncate">{subtitle}</p>}
+        </div>
+      </div>
+      <div className="flex items-center gap-3 shrink-0">
         <button className="relative w-9 h-9 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-colors">
           <Bell className="w-4 h-4" />
           <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-indigo-500 rounded-full" />
         </button>
-        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center text-white text-xs font-bold">
-          CA
-        </div>
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger asChild>
+            <button className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center text-white text-xs font-bold focus:outline-none">
+              CA
+            </button>
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Content
+              align="end"
+              sideOffset={8}
+              className="z-50 min-w-[160px] bg-white rounded-xl border border-slate-200 shadow-lg p-1"
+            >
+              <DropdownMenu.Item
+                onSelect={handleSignOut}
+                className="flex items-center gap-2 px-3 py-2 text-sm text-red-600 rounded-lg cursor-pointer hover:bg-red-50 outline-none"
+              >
+                <LogOut className="w-4 h-4" />
+                Sign out
+              </DropdownMenu.Item>
+            </DropdownMenu.Content>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
       </div>
     </header>
   );

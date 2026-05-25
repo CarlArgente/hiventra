@@ -34,13 +34,7 @@ export default function CTASection() {
             href="/signin"
             className="flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-semibold px-8 py-4 rounded-full shadow-btn hover:-translate-y-0.5 transition-all duration-200 text-base"
           >
-            Start Free Trial →
-          </a>
-          <a
-            href="#"
-            className="flex items-center justify-center gap-2 bg-white/10 border border-white/20 text-white font-semibold px-8 py-4 rounded-full hover:bg-white/15 transition-all duration-200 text-base"
-          >
-            Book a Demo
+            Start Now →
           </a>
         </div>
 
