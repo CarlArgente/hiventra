@@ -1,6 +1,8 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { verifyPassword } from "@/lib/candidate-crypto";
+import { setCandidateSession } from "@/lib/candidate-session";
 import { redirect } from "next/navigation";
 
 export async function candidateSignIn(
@@ -16,24 +18,28 @@ export async function candidateSignIn(
 
   const supabase = await createClient();
 
-  // Resolve username → email via SECURITY DEFINER function (bypasses RLS)
-  const { data: email, error: rpcError } = await supabase.rpc(
-    "get_candidate_email_for_login",
-    { p_username: username }
-  );
-
-  if (rpcError || !email) {
-    return { error: "Invalid username or password." };
-  }
-
-  const { error: signInError } = await supabase.auth.signInWithPassword({
-    email,
-    password,
+  const { data: rows, error: rpcError } = await supabase.rpc("verify_candidate_login", {
+    p_username: username,
   });
 
-  if (signInError) {
+  if (rpcError || !rows || rows.length === 0) {
     return { error: "Invalid username or password." };
   }
 
+  const row = rows[0] as {
+    candidate_id: string;
+    password_hash: string;
+    can_logged_in: boolean;
+  };
+
+  if (!row.can_logged_in) {
+    return { error: "This account has been disabled." };
+  }
+
+  if (!verifyPassword(password, row.password_hash)) {
+    return { error: "Invalid username or password." };
+  }
+
+  await setCandidateSession(row.candidate_id);
   redirect("/portal");
 }

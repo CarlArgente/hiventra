@@ -86,19 +86,14 @@ export async function generateInterviewAnalysis(candidateId: string) {
   if (!apiKey) return { error: "Anthropic API not configured" };
 
   const supabase = await createClient();
-  await supabase.auth.getUser();
 
-  const { data: candidate } = await supabase
-    .from("candidates")
-    .select(`
-      id, full_name, job_id,
-      jobs (title),
-      interviews (id, responses, status)
-    `)
-    .eq("id", candidateId)
-    .single();
+  // Use SECURITY DEFINER RPC — works regardless of auth context (candidate or recruiter)
+  const { data: candidate, error: fetchError } = await supabase.rpc(
+    "get_interview_for_analysis",
+    { p_candidate_id: candidateId }
+  );
 
-  if (!candidate) return { error: "Candidate not found" };
+  if (fetchError || !candidate) return { error: "Candidate not found" };
 
   const interview = (candidate.interviews as any[])?.[0];
   const interviewId: string = interview?.id;
@@ -169,27 +164,19 @@ Rules:
     const text = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
     const parsed = JSON.parse(text);
 
-    // Write analysis to interviews table — never touches candidates resume fields
-    await supabase
-      .from("interviews")
-      .update({
-        ai_score: parsed.score,
-        ai_recommendation: parsed.recommendation,
-        ai_summary: parsed.summary,
-        ai_strengths: parsed.strengths ?? [],
-        ai_weaknesses: parsed.weaknesses ?? [],
-        ai_skill_breakdown: parsed.skill_breakdown,
-        ai_interview_highlights: parsed.highlights,
-        ai_risks: parsed.risks ?? [],
-        ai_analyzed_at: new Date().toISOString(),
-      })
-      .eq("id", interviewId);
-
-    // Keep ai_analyzed_at on candidates as a quick "analysis done" flag
-    await supabase
-      .from("candidates")
-      .update({ ai_analyzed_at: new Date().toISOString() })
-      .eq("id", candidateId);
+    // Write analysis via SECURITY DEFINER RPC — works without auth context
+    await supabase.rpc("save_interview_analysis", {
+      p_interview_id: interviewId,
+      p_candidate_id: candidateId,
+      p_score: parsed.score,
+      p_recommendation: parsed.recommendation,
+      p_summary: parsed.summary,
+      p_strengths: parsed.strengths ?? [],
+      p_weaknesses: parsed.weaknesses ?? [],
+      p_skill_breakdown: parsed.skill_breakdown,
+      p_highlights: parsed.highlights,
+      p_risks: parsed.risks ?? [],
+    });
 
     // Write immutable audit entry for this analysis
     await writeAuditEntry({

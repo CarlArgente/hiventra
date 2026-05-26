@@ -8,6 +8,9 @@ import {
   Bar,
   ScatterChart,
   Scatter,
+  PieChart,
+  Pie,
+  Legend,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -16,7 +19,7 @@ import {
   Cell,
   ReferenceLine,
 } from "recharts";
-import { TrendingUp, TrendingDown, Minus, Download, FileText } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 import type { AnalyticsData, RawCandidate, RawInterview, RawUpload } from "@/app/actions/analytics";
 
 type DateRange = "7d" | "30d" | "90d";
@@ -213,16 +216,6 @@ function dropOff(curr: number, prev: number) {
   return Math.round(((prev - curr) / prev) * 100);
 }
 
-function exportCSV(rows: string[][], filename: string) {
-  const csv = rows.map((r) => r.map((v) => `"${v}"`).join(",")).join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
 
 // ── Sub-components ─────────────────────────────────────────────────────
 
@@ -536,35 +529,6 @@ export default function AnalyticsDashboard({ data }: { data: AnalyticsData }) {
 
   const jobTitles = useMemo(() => jobStats.map((j) => j.title), [jobStats]);
 
-  // ── Export ─────────────────────────────────────────────────────────────
-
-  function handleExportCSV() {
-    const rows: string[][] = [
-      ["Stage", "Count", "Drop-off %"],
-      ...funnelData.map((f, i) => [
-        f.stage,
-        String(f.count),
-        i === 0
-          ? "—"
-          : String(dropOff(f.count, funnelData[i - 1].count)) + "%",
-      ]),
-      [],
-      ["Job", "Completion Rate", "Avg Score"],
-      ...displayedJobStats.map((j) => [
-        j.title,
-        j.completion_rate + "%",
-        j.avg_score ? String(j.avg_score) : "—",
-      ]),
-      ...(skillGaps.length > 0
-        ? [[], ["Skill", "Gap %"], ...skillGaps.map((g) => [g.skill, g.pct + "%"])]
-        : []),
-    ];
-    exportCSV(
-      rows,
-      `hiventra-analytics-${dateRange}-${new Date().toISOString().slice(0, 10)}.csv`
-    );
-  }
-
   const RANGES: DateRange[] = ["7d", "30d", "90d"];
   const RANGE_LABELS: Record<DateRange, string> = {
     "7d": "Last 7 days",
@@ -573,7 +537,7 @@ export default function AnalyticsDashboard({ data }: { data: AnalyticsData }) {
   };
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 max-w-screen-2xl">
+    <div className="p-4 sm:p-6 space-y-6">
       {/* Filter bar */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="flex items-center bg-white border border-slate-200 rounded-xl overflow-hidden shadow-soft">
@@ -640,29 +604,43 @@ export default function AnalyticsDashboard({ data }: { data: AnalyticsData }) {
         />
       </div>
 
-      {/* Funnel */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-soft p-5">
-        <p className="text-sm font-bold text-slate-700 mb-5">
-          Candidate Pipeline Funnel
-        </p>
-        {currCandidates.length === 0 ? (
-          <EmptyState message="No candidates in this period." />
-        ) : (
-          <div className="space-y-3">
-            {funnelData.map((item, i) => (
-              <FunnelStage
-                key={item.stage}
-                stage={item.stage}
-                count={item.count}
-                color={item.color}
-                prevCount={i === 0 ? item.count : funnelData[i - 1].count}
-                maxCount={funnelData[0].count}
-                isFirst={i === 0}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+      {/* Funnel + Skill Gaps */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <ChartCard title="Candidate Pipeline Funnel">
+          {currCandidates.length === 0 ? (
+            <EmptyState message="No candidates in this period." />
+          ) : (
+            <ResponsiveContainer width="100%" height={280}>
+              <PieChart>
+                <Pie
+                  data={funnelData.filter((d) => d.count > 0)}
+                  dataKey="count"
+                  nameKey="stage"
+                  cx="50%"
+                  cy="45%"
+                  innerRadius={60}
+                  outerRadius={100}
+                  paddingAngle={2}
+                  label={({ name, value }) => `${value}`}
+                  labelLine={false}
+                >
+                  {funnelData.filter((d) => d.count > 0).map((entry, i) => (
+                    <Cell key={i} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  formatter={(v: any, name: any) => [v, name]}
+                  contentStyle={{ fontSize: 12, borderRadius: 10, border: "1px solid #e2e8f0" }}
+                />
+                <Legend
+                  iconType="circle"
+                  iconSize={8}
+                  formatter={(value) => <span style={{ fontSize: 11, color: "#64748b" }}>{value}</span>}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
+        </ChartCard>
 
       {/* Row 2: Time-to-Hire Trend + Completion by Job */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
@@ -876,74 +854,44 @@ export default function AnalyticsDashboard({ data }: { data: AnalyticsData }) {
         </ChartCard>
       </div>
 
-      {/* Skill gaps */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-soft p-5">
-        <p className="text-sm font-bold text-slate-700 mb-5">
-          Most Common Missing Skills
-        </p>
-        {skillGaps.length === 0 ? (
-          <EmptyState message="No skill assessment data yet. Skill gaps will appear after candidates complete AI interviews with skill scoring enabled." />
-        ) : (
-          <>
-            <div className="space-y-3">
-              {skillGaps.slice(0, 8).map((gap, i) => (
-                <div key={gap.skill} className="flex items-center gap-4">
-                  <div className="w-6 text-right shrink-0">
-                    <span className="text-xs font-bold text-slate-400">
-                      {i + 1}
-                    </span>
+        <ChartCard title="Most Common Missing Skills">
+          {skillGaps.length === 0 ? (
+            <EmptyState message="No skill assessment data yet. Skill gaps will appear after candidates complete AI interviews with skill scoring enabled." />
+          ) : (
+            <>
+              <div className="space-y-3">
+                {skillGaps.slice(0, 8).map((gap, i) => (
+                  <div key={gap.skill} className="flex items-center gap-4">
+                    <div className="w-6 text-right shrink-0">
+                      <span className="text-xs font-bold text-slate-400">{i + 1}</span>
+                    </div>
+                    <div className="w-36 shrink-0">
+                      <span className="text-sm font-semibold text-slate-700">{gap.skill}</span>
+                    </div>
+                    <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all duration-700"
+                        style={{ width: `${gap.pct}%` }}
+                      />
+                    </div>
+                    <div className="w-12 text-right shrink-0">
+                      <span className={`text-xs font-bold tabular-nums ${
+                        gap.pct >= 60 ? "text-red-500" : gap.pct >= 40 ? "text-amber-600" : "text-slate-500"
+                      }`}>
+                        {gap.pct}%
+                      </span>
+                    </div>
                   </div>
-                  <div className="w-48 shrink-0">
-                    <span className="text-sm font-semibold text-slate-700">
-                      {gap.skill}
-                    </span>
-                  </div>
-                  <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all duration-700"
-                      style={{ width: `${gap.pct}%` }}
-                    />
-                  </div>
-                  <div className="w-14 text-right shrink-0">
-                    <span
-                      className={`text-xs font-bold tabular-nums ${
-                        gap.pct >= 60
-                          ? "text-red-500"
-                          : gap.pct >= 40
-                          ? "text-amber-600"
-                          : "text-slate-500"
-                      }`}
-                    >
-                      {gap.pct}%
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <p className="text-xs text-slate-400 mt-4">
-              Percentage of candidates lacking this skill based on AI assessment
-            </p>
-          </>
-        )}
-      </div>
+                ))}
+              </div>
+              <p className="text-xs text-slate-400 mt-4">
+                Percentage of candidates lacking this skill based on AI assessment
+              </p>
+            </>
+          )}
+        </ChartCard>
+      </div>{/* end funnel + skill gaps grid */}
 
-      {/* Export */}
-      <div className="flex items-center gap-3 pb-2">
-        <button
-          onClick={handleExportCSV}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-600 text-sm font-semibold rounded-xl hover:border-indigo-300 hover:text-indigo-600 transition-colors shadow-soft"
-        >
-          <Download className="w-4 h-4" />
-          Export as CSV
-        </button>
-        <button
-          onClick={() => window.print()}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors shadow-btn"
-        >
-          <FileText className="w-4 h-4" />
-          Download PDF Report
-        </button>
-      </div>
     </div>
   );
 }

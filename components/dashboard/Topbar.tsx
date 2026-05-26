@@ -1,11 +1,12 @@
 "use client";
 
-import { Bell, LogOut, Menu } from "lucide-react";
+import { LogOut, Menu } from "lucide-react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useMobileNav } from "./DashboardShell";
+import AIExplainabilityPopup from "./AIExplainabilityPopup";
 
 interface TopbarProps {
   title: string;
@@ -63,10 +64,7 @@ export default function Topbar({ title, subtitle }: TopbarProps) {
         </div>
       </div>
       <div className="flex items-center gap-3 shrink-0">
-        <button className="relative w-9 h-9 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-colors">
-          <Bell className="w-4 h-4" />
-          <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-indigo-500 rounded-full" />
-        </button>
+        <AIExplainabilityPopup />
         <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>
             <button className="w-9 h-9 rounded-full overflow-hidden focus:outline-none ring-2 ring-transparent hover:ring-indigo-300 transition-all">

@@ -39,9 +39,9 @@ type TabId = (typeof TABS)[number]["id"];
 
 const ROLE_LABELS: Record<string, string> = {
   admin: "Admin",
-  hr_manager: "HR Manager",
+  hr_manager: "HR or Interviewer",
+  interviewer: "HR or Interviewer",
   hiring_manager: "Hiring Manager",
-  interviewer: "Interviewer",
   dept_head: "Department Head",
   candidate: "Candidate",
 };
@@ -49,8 +49,8 @@ const ROLE_LABELS: Record<string, string> = {
 const ROLE_COLORS: Record<string, string> = {
   admin: "bg-violet-100 text-violet-700",
   hr_manager: "bg-indigo-100 text-indigo-700",
+  interviewer: "bg-indigo-100 text-indigo-700",
   hiring_manager: "bg-blue-100 text-blue-700",
-  interviewer: "bg-sky-100 text-sky-700",
   dept_head: "bg-teal-100 text-teal-700",
   candidate: "bg-slate-100 text-slate-600",
 };
@@ -283,7 +283,7 @@ function UsersTab({
                   onChange={(e) => setInviteRole(e.target.value)}
                 >
                   {Object.entries(ROLE_LABELS)
-                    .filter(([k]) => k !== "candidate")
+                    .filter(([k]) => k !== "candidate" && k !== "interviewer")
                     .map(([k, v]) => (
                       <option key={k} value={k}>{v}</option>
                     ))}
@@ -332,7 +332,7 @@ function UsersTab({
                   onChange={(e) => handleRoleChange(u.id, e.target.value)}
                 >
                   {Object.entries(ROLE_LABELS)
-                    .filter(([k]) => k !== "candidate")
+                    .filter(([k]) => k !== "candidate" && k !== "interviewer")
                     .map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                 </select>
                 <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 pointer-events-none text-current opacity-60" />
@@ -378,7 +378,7 @@ function UsersTab({
                         onChange={(e) => handleRoleChange(u.id, e.target.value)}
                       >
                         {Object.entries(ROLE_LABELS)
-                          .filter(([k]) => k !== "candidate")
+                          .filter(([k]) => k !== "candidate" && k !== "interviewer")
                           .map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                       </select>
                       <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 pointer-events-none text-current opacity-60" />

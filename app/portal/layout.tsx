@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { getCandidateSession } from "@/lib/candidate-session";
 import { createClient } from "@/lib/supabase/server";
 import PortalHeader from "./PortalHeader";
 
@@ -7,19 +8,15 @@ export default async function PortalLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const candidateId = await getCandidateSession();
+  if (!candidateId) redirect("/candidate/login");
+
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/candidate/login");
+  const { data: name } = await supabase.rpc("get_candidate_name_by_id", {
+    p_candidate_id: candidateId,
+  });
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("full_name")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  const displayName = profile?.full_name ?? user.email ?? "Candidate";
+  const displayName = (name as string | null) ?? "Candidate";
   const initials = displayName
     .split(" ")
     .map((w: string) => w[0])

@@ -3,11 +3,37 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import type { PipelineStage } from "@/components/dashboard/pipeline/pipeline-types";
-import { MailerSend, EmailParams, Sender, Recipient } from "mailersend";
+import { Resend } from "resend";
+import { hashPassword } from "@/lib/candidate-crypto";
 import { writeAuditEntry } from "./audit";
 
-const mailerSend = new MailerSend({ apiKey: process.env.MAILERSEND_API_KEY! });
+const resend = new Resend(process.env.RESEND_API_KEY);
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+function generateUsername(fullName: string): string {
+  const base = fullName
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, "")
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .join(".");
+  const suffix = Math.floor(1000 + Math.random() * 9000);
+  return `${base || "candidate"}${suffix}`;
+}
+
+function generatePassword(): string {
+  const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const lower = "abcdefghjkmnpqrstuvwxyz";
+  const digits = "23456789";
+  const special = "!@#$";
+  const all = upper + lower + digits + special;
+  const pick = (s: string) => s[Math.floor(Math.random() * s.length)];
+  const rest = Array.from({ length: 8 }, () => pick(all));
+  return [pick(upper), pick(lower), pick(digits), pick(special), ...rest]
+    .sort(() => Math.random() - 0.5)
+    .join("");
+}
 
 function buildInviteEmail(opts: {
   candidateName: string;
@@ -17,6 +43,7 @@ function buildInviteEmail(opts: {
   duration: number;
   maxQuestions: number;
   interviewUrl: string;
+  credentials?: { username: string; password: string };
 }): string {
   const modeLabel = opts.mode.charAt(0).toUpperCase() + opts.mode.slice(1);
   const modeIcon = opts.mode === "voice" ? "🎙️" : opts.mode === "video" ? "🎥" : "💬";
@@ -102,6 +129,25 @@ function buildInviteEmail(opts: {
               </table>
             </li>`).join("")}
           </ul>
+
+          ${opts.credentials ? `
+          <!-- Credentials -->
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8faff;border:1px solid #e0e7ff;border-radius:12px;padding:20px;margin-bottom:28px;">
+            <tr><td>
+              <p style="margin:0 0 12px;font-size:12px;font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:0.06em;">Your Portal Login</p>
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="padding:8px 0;border-bottom:1px solid #e2e8f0;font-size:13px;color:#94a3b8;font-weight:500;">Username</td>
+                  <td style="padding:8px 0;border-bottom:1px solid #e2e8f0;font-size:14px;color:#1e293b;font-weight:700;font-family:monospace;text-align:right;">${opts.credentials.username}</td>
+                </tr>
+                <tr>
+                  <td style="padding:8px 0;font-size:13px;color:#94a3b8;font-weight:500;">Password</td>
+                  <td style="padding:8px 0;font-size:14px;color:#1e293b;font-weight:700;font-family:monospace;text-align:right;">${opts.credentials.password}</td>
+                </tr>
+              </table>
+              <p style="margin:12px 0 0;font-size:11px;color:#f59e0b;">⚠️ Temporary password — you will be prompted to change it after sign-in.</p>
+            </td></tr>
+          </table>` : ""}
 
           <!-- CTA -->
           <div style="text-align:center;margin-bottom:24px;">
@@ -310,8 +356,38 @@ export async function sendInterviewInvite(
     .update({ stage: "invited" })
     .eq("id", candidateId);
 
-  // Send invite email via MailerSend
+  // Send invite email via Resend (include portal credentials if available)
   if (candidate && job) {
+    const { data: existingUsername } = await supabase.rpc("get_candidate_username", {
+      p_candidate_id: candidateId,
+    });
+
+    let credentials: { username: string; password: string } | undefined;
+    if (existingUsername) {
+      const newPassword = generatePassword();
+      const newHash = hashPassword(newPassword);
+      await supabase.rpc("update_candidate_password_hash", {
+        p_candidate_id: candidateId,
+        p_hash: newHash,
+        p_must_change: true,
+      });
+      credentials = { username: existingUsername, password: newPassword };
+    } else {
+      const username = generateUsername(candidate.full_name ?? "candidate");
+      const password = generatePassword();
+      const { error: credError } = await supabase
+        .from("candidate_credentials")
+        .insert({
+          candidate_id: candidateId,
+          username,
+          email: candidate.email,
+          password_hash: hashPassword(password),
+          must_change_password: true,
+          can_logged_in: true,
+        });
+      if (!credError) credentials = { username, password };
+    }
+
     const html = buildInviteEmail({
       candidateName: candidate.full_name,
       jobTitle: job.title,
@@ -320,17 +396,17 @@ export async function sendInterviewInvite(
       duration: job.carl_duration ?? 30,
       maxQuestions: job.carl_max_questions ?? 10,
       interviewUrl: `${APP_URL}/portal/interview`,
+      credentials,
     });
 
-    const params = new EmailParams()
-      .setFrom(new Sender("noreply@hiventra.live", "Carl at Hiventra"))
-      .setTo([new Recipient(candidate.email, candidate.full_name)])
-      .setSubject(`Your interview invitation for ${job.title} at ${job.company}`)
-      .setHtml(html);
-
-    mailerSend.email.send(params)
-      .then(() => console.log("[MailerSend sent] →", candidate.email))
-      .catch((err) => console.error("[MailerSend error]", err));
+    resend.emails.send({
+      from: "Carl at Hiventra <noreply@hiventra.live>",
+      to: [candidate.email],
+      subject: `Your interview invitation for ${job.title} at ${job.company}`,
+      html,
+    })
+      .then(() => console.log("[Resend sent] →", candidate.email))
+      .catch((err: unknown) => console.error("[Resend error]", err));
   }
 
   revalidatePath(`/candidates/${candidateId}`);

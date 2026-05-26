@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { LogOut } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { candidateSignOut } from "@/app/actions/candidate-signout";
 
 const NAV_LINKS = [
   { label: "Home", href: "/portal" },
@@ -21,8 +21,7 @@ export default function PortalHeader({ displayName, initials }: Props) {
   const router = useRouter();
 
   const handleSignOut = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
+    await candidateSignOut();
     router.push("/candidate/login");
   };
 

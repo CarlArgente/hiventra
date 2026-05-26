@@ -20,14 +20,12 @@ import {
 import {
   getAuditLog,
   markAlertReviewed,
-  searchCandidateExplainability,
 } from "@/app/actions/audit";
 import type {
   AuditEntry,
   AnomalyAlert,
   AuditStats,
   JobScoreDistribution,
-  ExplainabilityCandidate,
   AuditFilters,
 } from "@/app/actions/audit";
 
@@ -162,12 +160,6 @@ export default function AuditClient({
   const [alerts, setAlerts] = useState(initialAlerts);
   const [reviewingId, startReviewing] = useTransition();
 
-  // ── Explainability state
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<ExplainabilityCandidate[]>([]);
-  const [selectedCandidate, setSelectedCandidate] = useState<ExplainabilityCandidate | null>(null);
-  const [searching, startSearch] = useTransition();
-
   const totalPages = Math.max(1, Math.ceil(total / 25));
 
   // ── Filter / paginate
@@ -199,16 +191,6 @@ export default function AuditClient({
           a.id === id ? { ...a, status: "reviewed" as const } : a
         )
       );
-    });
-  };
-
-  // ── Explainability search
-  const handleSearch = () => {
-    if (!searchQuery.trim()) return;
-    startSearch(async () => {
-      const results = await searchCandidateExplainability(searchQuery);
-      setSearchResults(results);
-      setSelectedCandidate(results[0] ?? null);
     });
   };
 
@@ -621,214 +603,9 @@ export default function AuditClient({
         </div>
       </section>
 
-      {/* AI Explainability on Demand */}
-      <section className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100">
-          <h2 className="font-semibold text-slate-800">AI Explainability on Demand</h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Look up the full scoring rationale for any candidate
-          </p>
-        </div>
-
-        <div className="p-5 space-y-5">
-          {/* Search */}
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search by candidate name or email…"
-                className="w-full pl-9 pr-4 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              />
-            </div>
-            <button
-              onClick={handleSearch}
-              disabled={!searchQuery.trim() || searching}
-              className="px-4 py-2.5 text-sm font-medium bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-colors flex items-center gap-2"
-            >
-              {searching && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-              Search
-            </button>
-          </div>
-
-          {/* Results sidebar + detail */}
-          {searchResults.length > 0 && (
-            <div className="flex gap-4">
-              {/* Candidate list */}
-              <div className="w-56 shrink-0 space-y-1">
-                {searchResults.map((c) => (
-                  <button
-                    key={c.id}
-                    onClick={() => setSelectedCandidate(c)}
-                    className={`w-full text-left px-3 py-2.5 rounded-xl text-sm transition-colors ${
-                      selectedCandidate?.id === c.id
-                        ? "bg-indigo-50 text-indigo-800 font-medium border border-indigo-200"
-                        : "text-slate-700 hover:bg-slate-50 border border-transparent"
-                    }`}
-                  >
-                    <p className="font-medium truncate">{c.full_name}</p>
-                    <p className="text-xs text-slate-400 truncate">{c.job_title}</p>
-                  </button>
-                ))}
-              </div>
-
-              {/* Detail panel */}
-              {selectedCandidate && (
-                <ExplainabilityDetail candidate={selectedCandidate} />
-              )}
-            </div>
-          )}
-
-          {searchResults.length === 0 && searchQuery && !searching && (
-            <p className="text-sm text-slate-400 py-4">
-              No candidates found matching "{searchQuery}".
-            </p>
-          )}
-        </div>
-      </section>
-
       </div>{/* end right column */}
       </div>{/* end two-column body */}
     </div>
   );
 }
 
-// ── Explainability detail panel ──────────────────────────────────────────────
-
-function ExplainabilityDetail({ candidate }: { candidate: ExplainabilityCandidate }) {
-  return (
-    <div className="flex-1 border border-slate-200 rounded-xl p-5 space-y-5 overflow-hidden">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h3 className="font-semibold text-slate-800">{candidate.full_name}</h3>
-          <p className="text-xs text-slate-500">{candidate.email} · {candidate.job_title}</p>
-        </div>
-      </div>
-
-      {/* Resume scoring */}
-      <div>
-        <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-3">
-          Resume Scoring
-        </h4>
-        {candidate.resume_score !== null ? (
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="text-3xl font-bold text-indigo-600">{candidate.resume_score}</div>
-              <div>
-                <p className="text-xs text-slate-500">AI Score</p>
-                {candidate.resume_recommendation && (
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${REC_COLORS[candidate.resume_recommendation] ?? "bg-slate-100 text-slate-600"}`}>
-                    {REC_LABELS[candidate.resume_recommendation] ?? candidate.resume_recommendation}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {candidate.resume_summary && (
-              <p className="text-sm text-slate-700 leading-relaxed border-l-2 border-indigo-200 pl-3">
-                {candidate.resume_summary}
-              </p>
-            )}
-
-            {(candidate.resume_strengths?.length || candidate.resume_weaknesses?.length) && (
-              <div className="grid grid-cols-2 gap-4">
-                {candidate.resume_strengths && candidate.resume_strengths.length > 0 && (
-                  <div>
-                    <p className="text-xs font-medium text-emerald-700 mb-1.5">Strengths</p>
-                    <ul className="space-y-1">
-                      {candidate.resume_strengths.map((s, i) => (
-                        <li key={i} className="text-xs text-slate-700 flex gap-1.5">
-                          <span className="text-emerald-500 shrink-0 mt-0.5">✓</span>
-                          {s}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                {candidate.resume_weaknesses && candidate.resume_weaknesses.length > 0 && (
-                  <div>
-                    <p className="text-xs font-medium text-red-600 mb-1.5">Weaknesses</p>
-                    <ul className="space-y-1">
-                      {candidate.resume_weaknesses.map((w, i) => (
-                        <li key={i} className="text-xs text-slate-700 flex gap-1.5">
-                          <span className="text-red-400 shrink-0 mt-0.5">✗</span>
-                          {w}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {candidate.resume_scored_at && (
-              <p className="text-xs text-slate-400">
-                Score generated on {fmt(candidate.resume_scored_at)}
-              </p>
-            )}
-          </div>
-        ) : (
-          <p className="text-sm text-slate-400 italic">No resume scoring data.</p>
-        )}
-      </div>
-
-      {/* Interview analysis */}
-      {candidate.interview_score !== null && (
-        <div>
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-3">
-            Interview Analysis
-          </h4>
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="text-3xl font-bold text-violet-600">{candidate.interview_score}</div>
-              <div>
-                <p className="text-xs text-slate-500">Interview Score</p>
-                {candidate.interview_recommendation && (
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${REC_COLORS[candidate.interview_recommendation] ?? "bg-slate-100 text-slate-600"}`}>
-                    {REC_LABELS[candidate.interview_recommendation] ?? candidate.interview_recommendation}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {candidate.interview_summary && (
-              <p className="text-sm text-slate-700 leading-relaxed border-l-2 border-violet-200 pl-3">
-                {candidate.interview_summary}
-              </p>
-            )}
-
-            {candidate.interview_skill_breakdown &&
-              Object.keys(candidate.interview_skill_breakdown).length > 0 && (
-                <div>
-                  <p className="text-xs font-medium text-slate-600 mb-2">Skill Breakdown</p>
-                  <div className="space-y-2">
-                    {Object.entries(candidate.interview_skill_breakdown).map(
-                      ([skill, score]) => (
-                        <div key={skill}>
-                          <div className="flex justify-between text-xs text-slate-600 mb-1">
-                            <span className="capitalize">{skill.replace(/_/g, " ")}</span>
-                            <span className="font-medium">{score}/100</span>
-                          </div>
-                          <ScoreBar value={score} max={100} />
-                        </div>
-                      )
-                    )}
-                  </div>
-                </div>
-              )}
-
-            {candidate.interview_analyzed_at && (
-              <p className="text-xs text-slate-400">
-                Analysis generated on {fmt(candidate.interview_analyzed_at)}
-              </p>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}

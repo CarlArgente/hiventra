@@ -23,6 +23,7 @@ Hiventra is a full-stack AI-powered hiring platform. Recruiters upload resumes, 
 - **Decision Banner** — when recruiter marks recommended/hired/rejected, the portal shows a contextual banner with the outcome
 - **Interview Room** — live AI interview with Carl: voice recording, TTS question delivery, real-time acknowledgments between answers
 - **Post-Interview** — completion screen; analysis runs server-side after interview ends
+- **Candidate Login** — username + password login at `/candidate/login` (separate from recruiter Google/OTP auth); credentials emailed via MailerSend when accounts are created
 
 ---
 
@@ -38,7 +39,8 @@ Hiventra is a full-stack AI-powered hiring platform. Recruiters upload resumes, 
 | Icons | lucide-react |
 | AI | Anthropic Claude Haiku (`claude-haiku-4-5-20251001`) |
 | TTS | ElevenLabs (`eleven_turbo_v2_5`) |
-| Email | Resend |
+| Email (candidates) | MailerSend (credential emails) |
+| Email (recruiters) | Resend (interview invites) |
 | Storage | Supabase Storage (resumes, candidate documents) |
 
 ---
@@ -67,11 +69,15 @@ ANTHROPIC_API_KEY=sk-ant-...
 ELEVENLABS_API_KEY=sk_...
 ELEVENLABS_VOICE_ID=your-voice-id
 
+# MailerSend (candidate credential emails)
+MAILERSEND_API_KEY=mlsn....
+
 # Resend (interview invite emails)
 RESEND_API_KEY=re_...
 
-# App URL (used in invite email links)
+# App URL (used in email links — set to production URL in Vercel env vars)
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 
 ### 3. Run the dev server
@@ -91,8 +97,10 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ```
 app/
-  actions/          # Server actions (jobs, candidates, interviews, report, portal, uploads)
+  actions/          # Server actions (jobs, candidates, interviews, report, portal, uploads,
+  |                 #   candidate-accounts, candidate-signin)
   api/              # API routes (score-resume, carl-questions, carl-respond, tts, transcribe)
+  candidate/        # Candidate auth pages (login)
   dashboard/        # Recruiter pages
   portal/           # Candidate-facing pages
   globals.css
@@ -114,6 +122,15 @@ lib/
 2. `/api/score-resume` sends each resume to Claude Haiku → returns score, summary, strengths, weaknesses
 3. `submitUploadBatch` creates a `candidates` row (with `ai_score`, `ai_summary`, etc.) and a `resume_uploads` row per file
 4. Candidates appear in the pipeline at `uploaded` stage
+
+### Create Candidate Accounts
+1. HR clicks "Create Accounts & Send Invites" on the upload/pipeline page
+2. `createCandidateAccounts(jobId)` finds all scored candidates without credentials
+3. Generates username (e.g. `john.doe1234`) and random password per candidate
+4. Creates Supabase Auth user via `create_candidate_auth_user` SECURITY DEFINER function
+5. Stores username in `candidate_credentials`; sends credentials email via MailerSend
+6. Advances candidate stage to `invited`
+7. Candidate logs in at `/candidate/login` with username + password
 
 ### Interview Invite → Analysis
 1. HR sends invite from candidate profile → `interviews` row created (`status = pending`)

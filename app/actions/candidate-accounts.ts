@@ -1,19 +1,22 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { MailerSend, EmailParams, Sender, Recipient } from "mailersend";
+import { hashPassword } from "@/lib/candidate-crypto";
+import { Resend } from "resend";
 import { revalidatePath } from "next/cache";
 
-const mailerSend = new MailerSend({ apiKey: process.env.MAILERSEND_API_KEY! });
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-async function sendEmail(to: string, toName: string, subject: string, html: string) {
-  const params = new EmailParams()
-    .setFrom(new Sender("noreply@hiventra.live", "Hiventra"))
-    .setTo([new Recipient(to, toName)])
-    .setSubject(subject)
-    .setHtml(html);
-  await mailerSend.email.send(params);
+async function sendEmail(to: string, _toName: string, subject: string, html: string) {
+  const { error } = await resend.emails.send({
+    from: "Hiventra <noreply@hiventra.live>",
+    to: [to],
+    subject,
+    html,
+  });
+  if (error) throw new Error(error.message);
 }
+
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
 function generateUsername(fullName: string): string {
@@ -34,7 +37,6 @@ function generatePassword(): string {
   const digits = "23456789";
   const special = "!@#$";
   const all = upper + lower + digits + special;
-  // Guarantee at least one of each class
   const pick = (s: string) => s[Math.floor(Math.random() * s.length)];
   const rest = Array.from({ length: 8 }, () => pick(all));
   return [pick(upper), pick(lower), pick(digits), pick(special), ...rest]
@@ -49,7 +51,6 @@ function buildCredentialsEmail(opts: {
   loginUrl: string;
   appUrl: string;
 }): string {
-  const APP_URL = opts.appUrl;
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -140,7 +141,6 @@ export async function createCandidateAccounts(
   } = await supabase.auth.getUser();
   if (!user) return { error: "Unauthorized" };
 
-  // Fetch all scored candidates for this job
   const { data: candidates, error: fetchError } = await supabase
     .from("candidates")
     .select("id, full_name, email")
@@ -151,7 +151,6 @@ export async function createCandidateAccounts(
   if (!candidates || candidates.length === 0)
     return { error: "No scored candidates found for this job." };
 
-  // Fetch existing credentials to skip them (via SECURITY DEFINER to bypass RLS)
   const { data: existingIds } = await supabase.rpc("get_credentialed_candidate_ids", {
     p_candidate_ids: candidates.map((c) => c.id),
   });
@@ -168,26 +167,15 @@ export async function createCandidateAccounts(
     try {
       const username = generateUsername(candidate.full_name ?? "candidate");
       const password = generatePassword();
-      const email = candidate.email;
+      const passwordHash = hashPassword(password);
 
-      // Create Supabase Auth user via SECURITY DEFINER function
-      const { data: authUserId, error: rpcError } = await supabase.rpc(
-        "create_candidate_auth_user",
-        { p_email: email, p_password: password, p_full_name: candidate.full_name ?? "" }
-      );
-
-      if (rpcError) {
-        errors.push(`${candidate.full_name}: ${rpcError.message}`);
-        failed++;
-        continue;
-      }
-
-      // Store credentials
       const { error: credError } = await supabase
         .from("candidate_credentials")
         .insert({
           candidate_id: candidate.id,
           username,
+          email: candidate.email,
+          password_hash: passwordHash,
           must_change_password: true,
           can_logged_in: true,
         });
@@ -198,7 +186,6 @@ export async function createCandidateAccounts(
         continue;
       }
 
-      // Send email
       const loginUrl = `${APP_URL}/candidate/login`;
       const html = buildCredentialsEmail({
         candidateName: candidate.full_name ?? "Candidate",
@@ -209,7 +196,12 @@ export async function createCandidateAccounts(
       });
 
       try {
-        await sendEmail(email, candidate.full_name ?? "Candidate", "🎉 Your Hiventra Candidate Portal Access", html);
+        await sendEmail(
+          candidate.email,
+          candidate.full_name ?? "Candidate",
+          "🎉 Your Hiventra Candidate Portal Access",
+          html
+        );
       } catch (emailErr) {
         const raw = emailErr instanceof Error ? emailErr.message : JSON.stringify(emailErr);
         const msg = `Email failed for ${candidate.full_name}: ${raw}`;
@@ -217,7 +209,6 @@ export async function createCandidateAccounts(
         errors.push(msg);
       }
 
-      // Advance stage to invited
       await supabase
         .from("candidates")
         .update({ stage: "invited" })
@@ -256,22 +247,19 @@ export async function resendCandidateCredentials(
     p_candidate_id: candidateId,
   });
 
-  if (!username) return { error: "No credentials found for this candidate. Create an account first." };
+  if (!username)
+    return { error: "No credentials found for this candidate. Create an account first." };
 
   const newPassword = generatePassword();
+  const newHash = hashPassword(newPassword);
 
-  const { error: rpcError } = await supabase.rpc("create_candidate_auth_user", {
-    p_email: candidate.email,
-    p_password: newPassword,
-    p_full_name: candidate.full_name ?? "",
+  const { error: rpcError } = await supabase.rpc("update_candidate_password_hash", {
+    p_candidate_id: candidateId,
+    p_hash: newHash,
+    p_must_change: true,
   });
 
   if (rpcError) return { error: rpcError.message };
-
-  await supabase
-    .from("candidate_credentials")
-    .update({ must_change_password: true })
-    .eq("candidate_id", candidateId);
 
   const loginUrl = `${APP_URL}/candidate/login`;
   const html = buildCredentialsEmail({
@@ -282,7 +270,12 @@ export async function resendCandidateCredentials(
     appUrl: APP_URL,
   });
 
-  await sendEmail(candidate.email, candidate.full_name ?? "Candidate", "🎉 Your Hiventra Candidate Portal Access", html);
+  await sendEmail(
+    candidate.email,
+    candidate.full_name ?? "Candidate",
+    "🎉 Your Hiventra Candidate Portal Access",
+    html
+  );
 
   return { success: true };
 }

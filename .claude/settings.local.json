@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "mcp__supabase__get_logs"
+      "mcp__supabase__get_logs",
+      "mcp__supabase__list_projects",
+      "mcp__supabase__list_tables",
+      "Bash(Get-Content \"c:\\\\Users\\\\carla\\\\Documents\\\\Claude\\\\Projects\\\\hiventra\\\\.env.local\")",
+      "Bash(Select-String -Pattern \"SUPABASE\")",
+      "Bash(node -e \"const c=require\\('crypto'\\); console.log\\(c.randomBytes\\(32\\).toString\\('hex'\\)\\)\")"
     ]
   }
 }

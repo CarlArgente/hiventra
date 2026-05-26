@@ -72,7 +72,7 @@ export async function getSettingsData(): Promise<SettingsData> {
     supabase.from("carl_defaults").select("*").limit(1).single(),
     supabase.from("scoring_thresholds").select("*").limit(1).single(),
     supabase.from("notification_preferences").select("event_name, role, enabled"),
-    supabase.from("profiles").select("id, email, full_name, role, status, last_login_at, created_at").order("created_at"),
+    supabase.from("profiles").select("id, email, full_name, role, status, last_login_at, created_at").neq("role", "candidate").order("created_at"),
   ]);
 
   return {

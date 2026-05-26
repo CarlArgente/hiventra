@@ -19,9 +19,18 @@ npm run lint     # ESLint
 - **Supabase** via `@supabase/ssr` 0.10.3 — server client uses publishable key (`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`), not service role key
 - **Radix UI** — Dialog, DropdownMenu, Tabs, etc. already installed; use these over custom implementations
 - **lucide-react** for icons
+- **MailerSend** — transactional email for candidate credential emails (`app/actions/candidate-accounts.ts`)
 - **Resend** — transactional email (interview invites)
 - **ElevenLabs** — TTS for Carl's voice in interviews (`/api/tts`)
 - **Anthropic API** — Claude Haiku for resume scoring, interview question generation, Carl responses, and post-interview analysis
+
+## Production deployment
+
+- **Domain**: `https://www.hiventra.live` (Vercel; DNS on Namecheap)
+- **Supabase Auth Site URL**: `https://www.hiventra.live`
+- **Supabase redirect URLs**: `https://www.hiventra.live/auth/callback`, `https://hiventra.live/auth/callback`
+- **Vercel env vars** must be set: `NEXT_PUBLIC_APP_URL=https://www.hiventra.live`, `NEXT_PUBLIC_SITE_URL=https://www.hiventra.live` plus all keys from `.env.local`
+- **NEVER DELETE** auth user `556aada9-8fef-4be1-99ca-0fda0fcf826b` — recruiter/admin account (carlargente0156@gmail.com)
 
 ## Architecture
 
@@ -55,6 +64,20 @@ RLS policies use a `SECURITY DEFINER` function `get_my_role()` to avoid infinite
 ```sql
 SELECT public.get_my_role() -- returns current user's role without triggering RLS on profiles
 ```
+
+Valid `profiles.role` values (enforced by `profiles_role_check` constraint): `admin`, `hr_manager`, `hiring_manager`, `interviewer`, `dept_head`, `candidate`. Never use `'hr'` — constraint will reject it.
+
+### Candidate auth accounts (`create_candidate_auth_user`)
+
+GoTrue requires both `auth.users` and `auth.identities` rows for email/password login. The `SECURITY DEFINER` function `create_candidate_auth_user` handles both. Critical invariants:
+- `email_change`, `email_change_token_new`, `email_change_token_current`, `reauthentication_token` must be `''` (empty string), NOT NULL — GoTrue fails with "converting NULL to string is unsupported"
+- `phone`, `phone_change`, `phone_change_token` must stay NULL — `users_phone_key` unique constraint prevents `''` for multiple users
+- `auth.identities` row: `provider='email'`, `provider_id=email`, `identity_data={"sub": user_id, "email": email}` — required for password auth to work
+- Candidate login page: `/candidate/login` — uses username → email lookup via `get_candidate_email_for_login(p_username)`
+- Credentials stored in `candidate_credentials` table (username, must_change_password, can_logged_in) — no password stored there
+
+### MailerSend trial limits
+Trial plan caps unique recipients. Error: `"You have reached trial account unique recipients limit"` (code #MS42225). Fix: upgrade MailerSend plan or add recipient emails as verified senders. Email errors are surfaced in `CreateAccountsResult.errors[]` (non-fatal — account still created, stage still updated to `invited`).
 
 ### Data ownership — candidates vs interviews
 
@@ -107,6 +130,8 @@ Candidate portal (`/portal`) shows a decision banner when `candidates.stage` is 
 - `app/actions/portal.ts` — candidate-facing data: `getPortalData`, `saveDocument`, `updateCandidateProfile`
 - `app/actions/analytics.ts` — hiring metrics queries
 - `app/actions/collaboration.ts` — team collaboration per job
+- `app/actions/candidate-accounts.ts` — `createCandidateAccounts(jobId)`: creates auth users + credentials + sends MailerSend email for all scored candidates; `resendCandidateCredentials(candidateId)`: resets password + resends email
+- `app/actions/candidate-signin.ts` — `candidateSignIn`: username→email lookup via RPC, then Supabase password auth, redirects to `/portal`
 
 ### Components
 - `components/portal/InterviewRoom.tsx` — live interview UI: pre-check → active → complete states, TTS, voice recording
