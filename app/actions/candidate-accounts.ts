@@ -211,8 +211,10 @@ export async function createCandidateAccounts(
       try {
         await sendEmail(email, candidate.full_name ?? "Candidate", "🎉 Your Hiventra Candidate Portal Access", html);
       } catch (emailErr) {
-        const msg = emailErr instanceof Error ? emailErr.message : JSON.stringify(emailErr);
+        const raw = emailErr instanceof Error ? emailErr.message : JSON.stringify(emailErr);
+        const msg = `Email failed for ${candidate.full_name}: ${raw}`;
         console.error("[MailerSend error]", msg);
+        errors.push(msg);
       }
 
       // Advance stage to invited
