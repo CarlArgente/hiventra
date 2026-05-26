@@ -3,10 +3,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import type { PipelineStage } from "@/components/dashboard/pipeline/pipeline-types";
-import { Resend } from "resend";
+import { MailerSend, EmailParams, Sender, Recipient } from "mailersend";
 import { writeAuditEntry } from "./audit";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const mailerSend = new MailerSend({ apiKey: process.env.MAILERSEND_API_KEY! });
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
 function buildInviteEmail(opts: {
@@ -310,7 +310,7 @@ export async function sendInterviewInvite(
     .update({ stage: "invited" })
     .eq("id", candidateId);
 
-  // Send invite email via Resend
+  // Send invite email via MailerSend
   if (candidate && job) {
     const html = buildInviteEmail({
       candidateName: candidate.full_name,
@@ -322,14 +322,15 @@ export async function sendInterviewInvite(
       interviewUrl: `${APP_URL}/portal/interview`,
     });
 
-    const { data: emailData, error: emailError } = await resend.emails.send({
-      from: "Carl at Hiventra <onboarding@resend.dev>",
-      to: candidate.email,
-      subject: `Your interview invitation for ${job.title} at ${job.company}`,
-      html,
-    });
-    if (emailError) console.error("[Resend error]", emailError);
-    else console.log("[Resend sent]", emailData?.id, "→", candidate.email);
+    const params = new EmailParams()
+      .setFrom(new Sender("noreply@hiventra.live", "Carl at Hiventra"))
+      .setTo([new Recipient(candidate.email, candidate.full_name)])
+      .setSubject(`Your interview invitation for ${job.title} at ${job.company}`)
+      .setHtml(html);
+
+    mailerSend.email.send(params)
+      .then(() => console.log("[MailerSend sent] →", candidate.email))
+      .catch((err) => console.error("[MailerSend error]", err));
   }
 
   revalidatePath(`/candidates/${candidateId}`);

@@ -1,10 +1,19 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { Resend } from "resend";
+import { MailerSend, EmailParams, Sender, Recipient } from "mailersend";
 import { revalidatePath } from "next/cache";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const mailerSend = new MailerSend({ apiKey: process.env.MAILERSEND_API_KEY! });
+
+async function sendEmail(to: string, toName: string, subject: string, html: string) {
+  const params = new EmailParams()
+    .setFrom(new Sender("noreply@hiventra.live", "Hiventra"))
+    .setTo([new Recipient(to, toName)])
+    .setSubject(subject)
+    .setHtml(html);
+  await mailerSend.email.send(params);
+}
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
 function generateUsername(fullName: string): string {
@@ -38,7 +47,9 @@ function buildCredentialsEmail(opts: {
   username: string;
   password: string;
   loginUrl: string;
+  appUrl: string;
 }): string {
+  const APP_URL = opts.appUrl;
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -50,7 +61,6 @@ function buildCredentialsEmail(opts: {
     body { margin:0; padding:0; background:#f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
     .wrap { max-width:560px; margin:40px auto; background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 4px 24px rgba(0,0,0,0.07); }
     .header { background:linear-gradient(135deg,#4f46e5,#7c3aed); padding:36px 40px; text-align:center; }
-    .header-icon { display:inline-block; width:48px; height:48px; background:rgba(255,255,255,0.2); border-radius:12px; line-height:48px; text-align:center; font-size:26px; font-weight:900; color:#fff; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
     .header h1 { color:#fff; font-size:22px; margin:16px 0 4px; font-weight:800; }
     .header p { color:rgba(255,255,255,0.75); font-size:14px; margin:0; }
     .body { padding:36px 40px; }
@@ -70,7 +80,7 @@ function buildCredentialsEmail(opts: {
 <body>
   <div class="wrap">
     <div class="header">
-      <div class="header-icon">H</div>
+      <img src="https://hiventra-alpha.vercel.app/hiventra_icon.png" width="56" height="56" alt="H" style="display:block;width:56px;height:56px;border-radius:12px;margin:0 auto;" />
       <h1>Welcome to Hiventra</h1>
       <p>Your candidate portal access is ready</p>
     </div>
@@ -195,17 +205,14 @@ export async function createCandidateAccounts(
         username,
         password,
         loginUrl,
+        appUrl: APP_URL,
       });
 
-      const { error: emailError } = await resend.emails.send({
-        from: "Hiventra <onboarding@resend.dev>",
-        to: email,
-        subject: "Your Hiventra Candidate Portal Access",
-        html,
-      });
-
-      if (emailError) {
-        console.error("[Resend error]", emailError);
+      try {
+        await sendEmail(email, candidate.full_name ?? "Candidate", "🎉 Your Hiventra Candidate Portal Access", html);
+      } catch (emailErr) {
+        const msg = emailErr instanceof Error ? emailErr.message : JSON.stringify(emailErr);
+        console.error("[MailerSend error]", msg);
       }
 
       // Advance stage to invited
@@ -216,7 +223,8 @@ export async function createCandidateAccounts(
 
       created++;
     } catch (err) {
-      errors.push(`${candidate.full_name}: ${String(err)}`);
+      const msg = err instanceof Error ? err.message : JSON.stringify(err);
+      errors.push(`${candidate.full_name}: ${msg}`);
       failed++;
     }
   }
@@ -269,16 +277,10 @@ export async function resendCandidateCredentials(
     username,
     password: newPassword,
     loginUrl,
+    appUrl: APP_URL,
   });
 
-  const { error: emailError } = await resend.emails.send({
-    from: "Hiventra <onboarding@resend.dev>",
-    to: candidate.email,
-    subject: "Your Hiventra Candidate Portal Access",
-    html,
-  });
-
-  if (emailError) console.error("[Resend error]", emailError);
+  await sendEmail(candidate.email, candidate.full_name ?? "Candidate", "🎉 Your Hiventra Candidate Portal Access", html);
 
   return { success: true };
 }
