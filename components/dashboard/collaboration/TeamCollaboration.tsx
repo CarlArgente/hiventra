@@ -375,10 +375,12 @@ const STAR_LABELS = ["", "Poor", "Below Avg", "Average", "Good", "Excellent"];
 function Stepper({
   stages,
   currentUserRole,
+  interviewStatus,
   onAction,
 }: {
   stages: [ApprovalStage, ApprovalStage, ApprovalStage];
   currentUserRole: string | null;
+  interviewStatus: string | null;
   onAction: (idx: number, action: "approve" | "reject", rating: number, comment: string, recommendation: string) => void;
 }) {
   const [rating, setRating] = useState(0);
@@ -389,6 +391,7 @@ function Stepper({
   const pendingIdx = stages.findIndex((s) => s.status === "pending");
   const allDone = stages.every((s) => s.status === "done");
   const isRejected = stages.some((s) => s.status === "rejected");
+  const interviewDone = interviewStatus === "completed";
   const canSubmit = rating > 0 && comment.trim().length > 0;
 
   useEffect(() => {
@@ -501,7 +504,17 @@ function Stepper({
       </div>
 
       {/* Review form for active pending stage */}
-      {pendingIdx >= 0 && !canActOnStage(currentUserRole, pendingIdx) && (
+      {pendingIdx >= 0 && !interviewDone && (
+        <div className="mt-4 pt-4 border-t border-slate-100">
+          <div className="flex items-center gap-2 bg-amber-50 rounded-xl px-3 py-3">
+            <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <p className="text-xs text-amber-700">
+              Approval is locked until the candidate completes their interview.
+            </p>
+          </div>
+        </div>
+      )}
+      {pendingIdx >= 0 && interviewDone && !canActOnStage(currentUserRole, pendingIdx) && (
         <div className="mt-4 pt-4 border-t border-slate-100">
           <div className="flex items-center gap-2 bg-slate-50 rounded-xl px-3 py-3">
             <Lock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
@@ -512,7 +525,7 @@ function Stepper({
           </div>
         </div>
       )}
-      {pendingIdx >= 0 && canActOnStage(currentUserRole, pendingIdx) && (
+      {pendingIdx >= 0 && interviewDone && canActOnStage(currentUserRole, pendingIdx) && (
         <div className="mt-4 pt-4 border-t border-slate-100 space-y-3">
           <p className="text-xs font-semibold text-slate-700">
             {stages[pendingIdx].label} — Your Review
@@ -1147,6 +1160,7 @@ function ApprovalTab({
             <Stepper
               stages={approval.stages}
               currentUserRole={currentUserRole}
+              interviewStatus={c.interview_status}
               onAction={(idx, action, rating, comment, recommendation) =>
                 onAction(c.id, idx, action, rating, comment, recommendation)
               }

@@ -524,7 +524,7 @@ export default function AnalyticsDashboard({ data }: { data: AnalyticsData }) {
       };
     });
     if (selectedJob) stats = stats.filter((j) => j.title === selectedJob);
-    return stats.slice(0, 8);
+    return stats.sort((a, b) => b.completion_rate - a.completion_rate).slice(0, 5);
   }, [jobStats, selectedJob]);
 
   const jobTitles = useMemo(() => jobStats.map((j) => j.title), [jobStats]);
@@ -694,7 +694,7 @@ export default function AnalyticsDashboard({ data }: { data: AnalyticsData }) {
           {displayedJobStats.length === 0 ? (
             <EmptyState message="No job data available." />
           ) : (
-            <ResponsiveContainer width="100%" height={220}>
+            <ResponsiveContainer width="100%" height={200}>
               <BarChart
                 layout="vertical"
                 data={displayedJobStats}

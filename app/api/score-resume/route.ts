@@ -30,13 +30,15 @@ export async function POST(request: NextRequest) {
   const jobTitle = (formData.get("jobTitle") as string) || "";
   const skillsRaw = (formData.get("requiredSkills") as string) || "[]";
   const requiredSkills: string[] = JSON.parse(skillsRaw);
+  const jobDescription = (formData.get("jobDescription") as string) || "";
 
   if (!file) {
     return NextResponse.json({ error: "No file provided" }, { status: 400 });
   }
 
   const skillsText = requiredSkills.length > 0 ? requiredSkills.join(", ") : "not specified";
-  const roleContext = `Position: "${jobTitle}". Required skills: ${skillsText}.`;
+  const descriptionText = jobDescription.trim() ? `\nJob description:\n${jobDescription.trim()}` : "";
+  const roleContext = `Position: "${jobTitle}". Required skills: ${skillsText}.${descriptionText}`;
 
   try {
     const arrayBuffer = await file.arrayBuffer();

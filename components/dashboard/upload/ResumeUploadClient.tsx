@@ -309,6 +309,7 @@ export default function ResumeUploadClient({ activeJobs }: Props) {
               fd.append("file", qf.file);
               fd.append("jobTitle", selectedJob?.title ?? "");
               fd.append("requiredSkills", JSON.stringify(selectedJob?.required_skills ?? []));
+              fd.append("jobDescription", selectedJob?.description ?? "");
               const http = await fetch("/api/score-resume", { method: "POST", body: fd });
               return await http.json();
             } catch {

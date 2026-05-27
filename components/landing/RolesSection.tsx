@@ -5,8 +5,8 @@ import { CheckCircle } from "lucide-react";
 
 const roles = [
   {
-    label: "HR Manager",
-    headline: "For HR Managers",
+    label: "HR or Interviewer",
+    headline: "For HR & Interviewers",
     sub: "You own the process from start to finish. Hiventra gives you the command center to manage it all.",
     points: [
       "Create and publish jobs in minutes",
@@ -29,7 +29,7 @@ const roles = [
     ],
   },
   {
-    label: "Dept. Head",
+    label: "Department Head",
     headline: "For Department Heads",
     sub: "You care about the outcome, not the process. Hiventra keeps you informed and in control at the right moments.",
     points: [
