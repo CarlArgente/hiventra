@@ -27,6 +27,7 @@ import {
 } from "@/app/actions/candidates";
 import type { NoteItem } from "./CandidateProfile";
 import type { ReportCandidateData, InterviewHighlight } from "@/app/actions/report";
+import { generateInterviewAnalysis } from "@/app/actions/report";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -178,6 +179,20 @@ export default function IntelligenceReport({
   // Stage action feedback
   const [stageMsg, setStageMsg] = useState<string | null>(null);
   const [rejectModal, setRejectModal] = useState(false);
+  const [autoAnalyzing, setAutoAnalyzing] = useState(false);
+
+  // Auto-trigger analysis if interview completed but analysis never ran (e.g. candidate closed tab)
+  useEffect(() => {
+    if (interview?.status === "completed" && !interview?.ai_analyzed_at && !autoAnalyzing) {
+      setAutoAnalyzing(true);
+      generateInterviewAnalysis(candidate.id).then(() => {
+        router.refresh();
+      }).catch(() => {
+        setAutoAnalyzing(false);
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [interview?.status, interview?.ai_analyzed_at]);
 
   const recCfg = recommendationConfig(interview?.ai_recommendation ?? null, score);
   const { text: scoreText } = scoreRingColor(score);
@@ -293,9 +308,19 @@ export default function IntelligenceReport({
           <div className="bg-white border border-brand-border rounded-2xl p-6 print-no-break">
             {!analysisReady ? (
               <div className="flex flex-col items-center gap-3 py-6 text-center">
-                <Clock className="w-8 h-8 text-slate-300" />
-                <p className="text-slate-600 font-semibold">Analysis pending</p>
-                <p className="text-slate-400 text-sm">The report will appear here once the candidate completes their interview.</p>
+                {autoAnalyzing ? (
+                  <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
+                ) : (
+                  <Clock className="w-8 h-8 text-slate-300" />
+                )}
+                <p className="text-slate-600 font-semibold">
+                  {autoAnalyzing ? "Generating analysis…" : "Analysis pending"}
+                </p>
+                <p className="text-slate-400 text-sm">
+                  {autoAnalyzing
+                    ? "Carl is scoring the interview. This takes 15–30 seconds."
+                    : "The report will appear here once the candidate completes their interview."}
+                </p>
               </div>
             ) : (
               <div className="flex flex-col sm:flex-row items-center gap-8">
