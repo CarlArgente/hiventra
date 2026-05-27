@@ -48,6 +48,7 @@ function jobToForm(job: import("./JobsTable").Job) {
     required_skills: job.required_skills ?? [],
     experience_min: job.experience_min ?? 0,
     experience_max: job.experience_max ?? 5,
+    min_resume_score: job.min_resume_score ?? 0,
     status: job.status,
     carl_mode: job.carl_mode ?? "text",
     carl_personality: job.carl_personality ?? "professional",
@@ -73,6 +74,7 @@ function defaultForm(): JobPayload & { include_salary: boolean; skillInput: stri
     required_skills: [],
     experience_min: 0,
     experience_max: 5,
+    min_resume_score: 0,
     status: "draft",
     carl_mode: "text",
     carl_personality: "professional",
@@ -155,6 +157,7 @@ export function JobFormModal({ children, job, open: controlledOpen, onOpenChange
       required_skills: form.required_skills,
       experience_min: form.experience_min,
       experience_max: form.experience_max,
+      min_resume_score: form.min_resume_score,
       status: submitStatus,
       carl_mode: form.carl_mode,
       carl_personality: form.carl_personality,
@@ -437,6 +440,27 @@ export function JobFormModal({ children, job, open: controlledOpen, onOpenChange
                     className={inputCls}
                   />
                 </div>
+              </div>
+
+              <div>
+                <Label>Minimum Resume Score (0 = accept all)</Label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={5}
+                    value={form.min_resume_score}
+                    onChange={(e) => set("min_resume_score", Number(e.target.value))}
+                    className="flex-1 accent-indigo-600"
+                  />
+                  <span className="w-12 text-right text-sm font-bold text-slate-900">
+                    {form.min_resume_score === 0 ? "Off" : `${form.min_resume_score}/100`}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Set to 0 to pass all candidates regardless of score (e.g. open to fresh grads)
+                </p>
               </div>
             </FormSection>
 

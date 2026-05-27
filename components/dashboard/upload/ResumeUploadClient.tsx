@@ -55,6 +55,7 @@ interface ActiveJob {
   department: string | null;
   required_skills: string[] | null;
   description: string | null;
+  min_resume_score: number | null;
 }
 
 interface Props {
@@ -318,14 +319,14 @@ export default function ResumeUploadClient({ activeJobs }: Props) {
           })(),
         ]);
 
-        const PASSING_SCORE = 75;
+        const PASSING_SCORE = selectedJob?.min_resume_score ?? 0;
         if (res.error) {
           results[qf.id] = {
             status: "error", aiScore: null, aiSummary: null,
             aiStrengths: [], aiWeaknesses: [], errorReason: res.error, storagePath,
             email: null, candidateName: null,
           };
-        } else if ((res.score ?? 0) < PASSING_SCORE) {
+        } else if (PASSING_SCORE > 0 && (res.score ?? 0) < PASSING_SCORE) {
           results[qf.id] = {
             status: "error", aiScore: res.score ?? null, aiSummary: res.summary ?? null,
             aiStrengths: res.strengths ?? [], aiWeaknesses: res.weaknesses ?? [],

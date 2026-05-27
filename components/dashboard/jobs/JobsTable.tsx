@@ -36,6 +36,7 @@ export interface Job {
   carl_personality: string | null;
   carl_duration: number | null;
   carl_max_questions: number | null;
+  min_resume_score: number | null;
 }
 
 const STATUS_TABS = ["All", "Active", "Draft", "Closed", "Archived"] as const;

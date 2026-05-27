@@ -24,6 +24,7 @@ export interface JobPayload {
   carl_max_questions: number;
   carl_topics?: string[];
   carl_role_type?: string;
+  min_resume_score: number;
 }
 
 export interface JobSummary {

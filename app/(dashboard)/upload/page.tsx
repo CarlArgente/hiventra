@@ -8,7 +8,7 @@ export default async function UploadPage() {
 
   const { data: activeJobs } = await supabase
     .from("jobs")
-    .select("id, title, department, required_skills, description")
+    .select("id, title, department, required_skills, description, min_resume_score")
     .eq("status", "active")
     .order("created_at", { ascending: false });
 

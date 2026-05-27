@@ -40,6 +40,8 @@ export async function POST(request: NextRequest) {
   const descriptionText = jobDescription.trim() ? `\nJob description:\n${jobDescription.trim()}` : "";
   const roleContext = `Position: "${jobTitle}". Required skills: ${skillsText}.${descriptionText}`;
 
+  const scoringInstruction = `Score the candidate based on their actual experience, skills, education, and fit for this role.\nBe honest and varied in scoring — different candidates should get different scores based on their real qualifications.`;
+
   try {
     const arrayBuffer = await file.arrayBuffer();
     const base64 = Buffer.from(arrayBuffer).toString("base64");
@@ -63,8 +65,7 @@ export async function POST(request: NextRequest) {
 
 ${roleContext}
 
-Score the candidate based on their actual experience, skills, education, and fit for this role.
-Be honest and varied in scoring — different candidates should get different scores based on their real qualifications.
+${scoringInstruction}
 
 Respond with ONLY raw JSON, starting with a curly brace, no markdown:
 ${JSON_SCHEMA}`,
