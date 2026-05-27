@@ -420,7 +420,18 @@ export default function InterviewRoom({ interview }: { interview: InterviewData 
         .catch(() => {
           clearTimeout(fetchTimer);
           clearTimeout(safetyTimer);
-          setTimeout(done, 3000);
+          // ElevenLabs failed — fall back to browser speech synthesis
+          if (typeof window !== "undefined" && "speechSynthesis" in window) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 0.92;
+            utterance.pitch = 1.0;
+            utterance.onend = () => done();
+            utterance.onerror = () => setTimeout(done, 3000);
+            window.speechSynthesis.speak(utterance);
+          } else {
+            setTimeout(done, 3000);
+          }
         });
     });
   };
