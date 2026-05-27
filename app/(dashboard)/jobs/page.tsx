@@ -11,7 +11,7 @@ export default async function JobsPage() {
   const [{ data: jobs }, { data: candidateRows }] = await Promise.all([
     supabase
       .from("jobs")
-      .select("id, title, company, department, employment_type, location, is_remote, status, created_at, description, required_skills, experience_min, experience_max, salary_min, salary_max, currency, carl_mode, carl_personality, carl_duration, carl_max_questions")
+      .select("id, title, company, department, employment_type, location, is_remote, status, created_at, description, required_skills, experience_min, experience_max, salary_min, salary_max, currency, carl_mode, carl_personality, carl_duration, carl_max_questions, min_resume_score")
       .order("created_at", { ascending: false }),
     supabase.from("candidates").select("job_id"),
   ]);
