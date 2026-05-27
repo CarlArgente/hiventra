@@ -1,26 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 
-export async function POST(req: NextRequest) {
-  const apiKey = process.env.ELEVENLABS_API_KEY;
-  if (!apiKey || apiKey === "your_key_here") {
-    return NextResponse.json({ error: "ElevenLabs not configured" }, { status: 503 });
-  }
-
-  const { text } = await req.json();
-  if (!text) return NextResponse.json({ error: "Missing text" }, { status: 400 });
-
-  const voiceId = process.env.ELEVENLABS_VOICE_ID ?? "JBFqnCBsd6RMkjVDRZzb";
-
-  const ttsController = new AbortController();
-  const ttsTimeout = setTimeout(() => ttsController.abort(), 10000);
-
-  let response: Response;
+async function fetchElevenLabs(apiKey: string, voiceId: string, text: string): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
   try {
-    response = await fetch(
+    const response = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
       {
         method: "POST",
-        signal: ttsController.signal,
+        signal: controller.signal,
         headers: {
           "xi-api-key": apiKey,
           "Content-Type": "application/json",
@@ -32,16 +20,42 @@ export async function POST(req: NextRequest) {
         }),
       }
     );
+    clearTimeout(timeout);
+    return response;
+  } catch (e) {
+    clearTimeout(timeout);
+    throw e;
+  }
+}
+
+export async function POST(req: NextRequest) {
+  const apiKey = process.env.ELEVENLABS_API_KEY;
+  if (!apiKey || apiKey === "your_key_here") {
+    return NextResponse.json({ error: "ElevenLabs not configured" }, { status: 503 });
+  }
+
+  const { text } = await req.json();
+  if (!text) return NextResponse.json({ error: "Missing text" }, { status: 400 });
+
+  const voiceId = process.env.ELEVENLABS_VOICE_ID ?? "JBFqnCBsd6RMkjVDRZzb";
+
+  let response: Response;
+  try {
+    response = await fetchElevenLabs(apiKey, voiceId, text);
+
+    // Retry once on 401/429 — ElevenLabs can transiently reject concurrent requests
+    if (!response.ok && (response.status === 401 || response.status === 429)) {
+      await new Promise((r) => setTimeout(r, 600));
+      response = await fetchElevenLabs(apiKey, voiceId, text);
+    }
   } catch {
-    clearTimeout(ttsTimeout);
     return NextResponse.json({ error: "TTS request timed out" }, { status: 504 });
   }
-  clearTimeout(ttsTimeout);
 
   if (!response.ok) {
     const err = await response.text();
     console.error("[ElevenLabs error]", response.status, err);
-    return NextResponse.json({ error: "TTS failed" }, { status: 502 });
+    return NextResponse.json({ error: "TTS failed", elevenlabs_status: response.status }, { status: 502 });
   }
 
   const audio = await response.arrayBuffer();

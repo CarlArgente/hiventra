@@ -179,43 +179,31 @@ export default function IntelligenceReport({
   // Stage action feedback
   const [stageMsg, setStageMsg] = useState<string | null>(null);
   const [rejectModal, setRejectModal] = useState(false);
-  const [autoAnalyzing, setAutoAnalyzing] = useState(false);
-  const [analysisFailed, setAnalysisFailed] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [retrying, setRetrying] = useState(false);
 
-  // Auto-trigger analysis if interview completed but analysis never ran (e.g. candidate closed tab)
-  useEffect(() => {
-    if (interview?.status === "completed" && !interview?.ai_analyzed_at && !autoAnalyzing && !analysisFailed) {
-      setAutoAnalyzing(true);
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 90_000);
+  const scoringFailed = interview?.status === "completed" && !interview?.ai_analyzed_at;
 
-      fetch("/api/generate-analysis", {
+  const handleRetryScoring = async () => {
+    setRetrying(true);
+    try {
+      const res = await fetch("/api/generate-analysis", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ candidateId: candidate.id }),
-        signal: controller.signal,
-      })
-        .then((res) => res.json())
-        .then((result) => {
-          clearTimeout(timeout);
-          if (result?.error) {
-            setAutoAnalyzing(false);
-            setAnalysisFailed(true);
-          } else {
-            router.refresh();
-          }
-        })
-        .catch(() => {
-          clearTimeout(timeout);
-          setAutoAnalyzing(false);
-          setAnalysisFailed(true);
-        });
-
-      return () => { clearTimeout(timeout); controller.abort(); };
+      });
+      const result = await res.json();
+      if (result?.error) {
+        setStageMsg("Scoring failed: " + result.error);
+      } else {
+        router.refresh();
+      }
+    } catch {
+      setStageMsg("Scoring failed: network error");
+    } finally {
+      setRetrying(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [interview?.status, interview?.ai_analyzed_at]);
+  };
 
   const handleResetAndResend = async () => {
     setResetting(true);
@@ -224,7 +212,6 @@ export default function IntelligenceReport({
     if (result && "error" in result) {
       setStageMsg("Reset failed: " + result.error);
     } else {
-      setAnalysisFailed(false);
       setStageMsg("Interview reset. Invite sent to " + candidate.email);
       setTimeout(() => setStageMsg(null), 5000);
       router.refresh();
@@ -345,24 +332,26 @@ export default function IntelligenceReport({
           <div className="bg-white border border-brand-border rounded-2xl p-6 print-no-break">
             {!analysisReady ? (
               <div className="flex flex-col items-center gap-3 py-6 text-center">
-                {autoAnalyzing ? (
-                  <>
-                    <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
-                    <p className="text-slate-600 font-semibold">Generating analysis…</p>
-                    <p className="text-slate-400 text-sm">Carl is scoring the interview. This takes 15–30 seconds.</p>
-                  </>
-                ) : analysisFailed && interview?.status === "completed" ? (
+                {scoringFailed ? (
                   <>
                     <AlertTriangle className="w-8 h-8 text-amber-400" />
                     <p className="text-slate-700 font-semibold">Interview scoring failed</p>
                     <p className="text-slate-400 text-sm max-w-sm">
                       There was a problem grading this interview after it was submitted. This can happen if the candidate&apos;s connection dropped during scoring.
                     </p>
-                    <div className="flex items-center gap-2 mt-2">
+                    <div className="flex items-center gap-2 mt-2 flex-wrap justify-center">
                       <button
-                        disabled={resetting}
+                        disabled={retrying || resetting}
+                        onClick={handleRetryScoring}
+                        className="text-sm text-white bg-indigo-600 hover:bg-indigo-500 font-semibold rounded-lg px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        {retrying && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                        {retrying ? "Scoring…" : "Retry Scoring"}
+                      </button>
+                      <button
+                        disabled={resetting || retrying}
                         onClick={handleResetAndResend}
-                        className="text-sm text-white bg-indigo-600 hover:bg-indigo-500 font-semibold rounded-lg px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="text-sm text-slate-600 border border-slate-300 hover:bg-slate-50 font-semibold rounded-lg px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {resetting ? "Resending…" : "Reset Interview & Resend Invite"}
                       </button>

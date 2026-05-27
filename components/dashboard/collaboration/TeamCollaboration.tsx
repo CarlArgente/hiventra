@@ -376,11 +376,13 @@ function Stepper({
   stages,
   currentUserRole,
   interviewStatus,
+  interviewAiScore,
   onAction,
 }: {
   stages: [ApprovalStage, ApprovalStage, ApprovalStage];
   currentUserRole: string | null;
   interviewStatus: string | null;
+  interviewAiScore: number | null;
   onAction: (idx: number, action: "approve" | "reject", rating: number, comment: string, recommendation: string) => void;
 }) {
   const [rating, setRating] = useState(0);
@@ -391,7 +393,7 @@ function Stepper({
   const pendingIdx = stages.findIndex((s) => s.status === "pending");
   const allDone = stages.every((s) => s.status === "done");
   const isRejected = stages.some((s) => s.status === "rejected");
-  const interviewDone = interviewStatus === "completed";
+  const interviewDone = interviewStatus === "completed" && interviewAiScore != null;
   const canSubmit = rating > 0 && comment.trim().length > 0;
 
   useEffect(() => {
@@ -509,7 +511,9 @@ function Stepper({
           <div className="flex items-center gap-2 bg-amber-50 rounded-xl px-3 py-3">
             <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
             <p className="text-xs text-amber-700">
-              Approval is locked until the candidate completes their interview.
+              {interviewStatus === "completed"
+                ? "Approval is locked until the interview analysis score is available."
+                : "Approval is locked until the candidate completes their interview."}
             </p>
           </div>
         </div>
@@ -1161,6 +1165,7 @@ function ApprovalTab({
               stages={approval.stages}
               currentUserRole={currentUserRole}
               interviewStatus={c.interview_status}
+              interviewAiScore={c.interview_ai_score}
               onAction={(idx, action, rating, comment, recommendation) =>
                 onAction(c.id, idx, action, rating, comment, recommendation)
               }

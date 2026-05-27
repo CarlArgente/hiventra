@@ -168,7 +168,7 @@ Rules:
     const parsed = JSON.parse(text);
 
     // Write analysis via SECURITY DEFINER RPC — works without auth context
-    await supabase.rpc("save_interview_analysis", {
+    const { error: saveError } = await supabase.rpc("save_interview_analysis", {
       p_interview_id: interviewId,
       p_candidate_id: candidateId,
       p_score: parsed.score,
@@ -180,6 +180,10 @@ Rules:
       p_highlights: parsed.highlights,
       p_risks: parsed.risks ?? [],
     });
+    if (saveError) {
+      console.error("save_interview_analysis error:", saveError);
+      return { error: "Failed to save analysis: " + saveError.message };
+    }
 
     // Write immutable audit entry for this analysis
     await writeAuditEntry({

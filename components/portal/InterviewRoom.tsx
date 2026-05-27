@@ -160,12 +160,12 @@ export default function InterviewRoom({ interview }: { interview: InterviewData 
 
   // Simli state (video mode)
   const [simliConnected, setSimliConnected] = useState(false);
+  const [simliError, setSimliError] = useState(false);
   const simliConnectedRef = useRef(false);
 
   // Camera preview + face detection (preCheck phase)
   type FaceStatus = "checking" | "detected" | "not_detected" | "unsupported";
   const [faceStatus, setFaceStatus] = useState<FaceStatus>("checking");
-  const [faceConfirmed, setFaceConfirmed] = useState(false);
   const camPreviewRef = useRef<HTMLVideoElement>(null);
   const camStreamRef = useRef<MediaStream | null>(null);
   const faceIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -305,7 +305,7 @@ export default function InterviewRoom({ interview }: { interview: InterviewData 
     if (!SIMLI_API_KEY || simliRef.current) return Promise.resolve();
     return new Promise<void>((resolve) => {
       // Fallback: give up waiting after 10s and proceed anyway
-      const timeout = setTimeout(resolve, 10000);
+      const timeout = setTimeout(() => { setSimliError(true); resolve(); }, 10000);
 
       (async () => {
         try {
@@ -352,6 +352,7 @@ export default function InterviewRoom({ interview }: { interview: InterviewData 
           await client.start();
         } catch {
           clearTimeout(timeout);
+          setSimliError(true);
           resolve();
         }
       })();
@@ -417,18 +418,37 @@ export default function InterviewRoom({ interview }: { interview: InterviewData 
             });
           }
         })
-        .catch(() => {
+        .catch((err) => {
           clearTimeout(fetchTimer);
           clearTimeout(safetyTimer);
-          // ElevenLabs failed — fall back to browser speech synthesis
+          console.warn("[TTS fallback] ElevenLabs unavailable, using browser voice", err);
           if (typeof window !== "undefined" && "speechSynthesis" in window) {
             window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.rate = 0.92;
-            utterance.pitch = 1.0;
-            utterance.onend = () => done();
-            utterance.onerror = () => setTimeout(done, 3000);
-            window.speechSynthesis.speak(utterance);
+            const speak = () => {
+              const utterance = new SpeechSynthesisUtterance(text);
+              // Explicitly pick an English voice to avoid the Chrome "voices not loaded" silent bug
+              const voices = window.speechSynthesis.getVoices();
+              const en = voices.find((v) => v.lang.startsWith("en")) ?? voices[0];
+              if (en) utterance.voice = en;
+              utterance.rate = 0.92;
+              utterance.pitch = 1.0;
+              utterance.onend = () => done();
+              utterance.onerror = () => setTimeout(done, 3000);
+              window.speechSynthesis.speak(utterance);
+            };
+            // Voices may not be populated yet on first use — wait for the event
+            if (window.speechSynthesis.getVoices().length > 0) {
+              speak();
+            } else {
+              window.speechSynthesis.onvoiceschanged = () => {
+                window.speechSynthesis.onvoiceschanged = null;
+                speak();
+              };
+              setTimeout(() => {
+                window.speechSynthesis.onvoiceschanged = null;
+                speak();
+              }, 800);
+            }
           } else {
             setTimeout(done, 3000);
           }
@@ -690,7 +710,6 @@ export default function InterviewRoom({ interview }: { interview: InterviewData 
   const progress = questions.length ? (questionIndex / questions.length) * 100 : 0;
   const currentQ = questions[questionIndex] ?? "";
 
-  const bubbleContent = isThinking ? null : carlAck ?? currentQ;
   const carlLabel = carlSpeaking ? "Carl is speaking…" : carlAck ? "Carl · responding" : "Carl · AI Interviewer";
 
   // --- PRE-CHECK ---
@@ -870,7 +889,7 @@ export default function InterviewRoom({ interview }: { interview: InterviewData 
             {!simliConnected && (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 gap-3">
                 <CarlAvatar size="lg" speaking={carlSpeaking} />
-                <p className="text-slate-500 text-xs">Connecting avatar…</p>
+                <p className="text-slate-500 text-xs">{simliError ? "Avatar unavailable" : "Connecting avatar…"}</p>
               </div>
             )}
             <div className="absolute top-3 left-3 z-10 bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1.5 flex items-center gap-2">
@@ -1001,7 +1020,7 @@ export default function InterviewRoom({ interview }: { interview: InterviewData 
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 gap-3">
                 <CarlAvatar size="lg" speaking={carlSpeaking} />
                 <p className="text-slate-500 text-xs">
-                  {SIMLI_API_KEY ? "Connecting avatar…" : "Configure NEXT_PUBLIC_SIMLI_API_KEY to enable avatar"}
+                  {simliError ? "Avatar unavailable" : SIMLI_API_KEY ? "Connecting avatar…" : "Configure NEXT_PUBLIC_SIMLI_API_KEY to enable avatar"}
                 </p>
               </div>
             )}
