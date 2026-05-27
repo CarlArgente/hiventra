@@ -593,7 +593,7 @@ export default function TalkWithCarlClient({ initialSessions, jobs, candidates }
               </button>
             </div>
             <p className="text-[10px] text-slate-400 mt-1.5 text-center">
-              Carl uses real data from your Hiventra platform. Press Enter to send, Shift+Enter for new line.
+              Press Enter to send, Shift+Enter for new line.
             </p>
           </div>
         </div>

@@ -57,10 +57,7 @@ export default function HeroSection() {
 
             {/* Trust signals */}
             <div className="flex flex-wrap gap-x-5 gap-y-2 justify-center lg:justify-start text-sm text-slate-400">
-              <span className="flex items-center gap-1.5">
-                <span className="text-emerald-400">✓</span> No credit card required
-              </span>
-              <span className="flex items-center gap-1.5">
+<span className="flex items-center gap-1.5">
                 <span className="text-emerald-400">✓</span> Up to 50 resumes per upload
               </span>
               <span className="flex items-center gap-1.5">

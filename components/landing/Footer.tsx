@@ -1,24 +1,36 @@
 
-const footerLinks = [
+const columns = [
   {
     heading: "Product",
     links: [
-      "Job Management", "Resume Intelligence", "Carl AI Interviewer",
-      "Candidate Pipeline", "Intelligence Reports", "Team Collaboration",
-      "Analytics Dashboard", "Candidate Portal", "AI Transparency",
+      { label: "Features",        href: "#features" },
+      { label: "How It Works",    href: "#how-it-works" },
+      { label: "Analytics",       href: "#analytics" },
+      { label: "AI Transparency", href: "#transparency" },
+    ],
+  },
+  {
+    heading: "Carl AI",
+    links: [
+      { label: "Meet Carl",          href: "#meet-carl" },
+      { label: "Carl's Personality", href: "#personality" },
+      { label: "For Candidates",     href: "#candidates" },
+      { label: "For Teams",          href: "#roles" },
     ],
   },
   {
     heading: "Company",
-    links: ["About Hiventra", "Meet Carl", "Careers", "Blog", "Press", "Contact Us"],
+    links: [
+      { label: "Testimonials", href: "#testimonials" },
+      { label: "FAQ",          href: "#faq" },
+    ],
   },
   {
-    heading: "Resources",
-    links: ["Documentation", "API Reference", "Integrations", "Help Center", "Security", "Status Page"],
-  },
-  {
-    heading: "Get Started",
-    links: ["Start Now", "Book a Demo", "View Pricing", "Talk to Sales", "Request Enterprise Quote"],
+    heading: "Access",
+    links: [
+      { label: "Sign In (HR)",       href: "/signin" },
+      { label: "Candidate Login",    href: "/candidate/login" },
+    ],
   },
 ];
 
@@ -34,29 +46,22 @@ export default function Footer() {
               <img src="/hiventra_icon.png" alt="Hiventra" className="w-8 h-8 rounded-lg object-cover" />
               <span className="text-white font-extrabold text-lg">Hiventra</span>
             </div>
-            <p className="text-slate-400 text-sm leading-relaxed mb-5">
+            <p className="text-slate-400 text-sm leading-relaxed">
               Intelligent Hiring, Powered by Carl AI.
               <br /><br />
               AI Talent Intelligence Platform for modern HR teams.
             </p>
-            <div className="flex gap-3">
-              {["in", "𝕏", "▶"].map((icon, i) => (
-                <a key={i} href="#" className="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-indigo-400 hover:border-indigo-500 transition-colors text-sm font-bold">
-                  {icon}
-                </a>
-              ))}
-            </div>
           </div>
 
           {/* Link columns */}
-          {footerLinks.map((col) => (
+          {columns.map((col) => (
             <div key={col.heading}>
               <p className="text-white font-semibold text-sm mb-4">{col.heading}</p>
               <ul className="space-y-2.5">
-                {col.links.map((link) => (
-                  <li key={link}>
-                    <a href="#" className="text-slate-400 text-sm hover:text-indigo-400 transition-colors">
-                      {link}
+                {col.links.map(({ label, href }) => (
+                  <li key={href}>
+                    <a href={href} className="text-slate-400 text-sm hover:text-indigo-400 transition-colors">
+                      {label}
                     </a>
                   </li>
                 ))}
@@ -68,15 +73,8 @@ export default function Footer() {
 
       {/* Bottom bar */}
       <div className="border-t border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p className="text-slate-500 text-sm">© 2026 Hiventra, Inc. All rights reserved.</p>
-          <div className="flex flex-wrap gap-x-5 gap-y-1 justify-center">
-            {["Privacy Policy", "Terms of Service", "Cookie Policy", "GDPR", "Security"].map((link) => (
-              <a key={link} href="#" className="text-slate-500 text-xs hover:text-indigo-400 transition-colors">
-                {link}
-              </a>
-            ))}
-          </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+          <p className="text-slate-500 text-sm text-center sm:text-left">© 2026 Hiventra, Inc. All rights reserved.</p>
         </div>
       </div>
     </footer>

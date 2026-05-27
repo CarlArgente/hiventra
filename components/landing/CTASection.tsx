@@ -40,13 +40,7 @@ export default function CTASection() {
 
         {/* Trust signals */}
         <div className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm text-slate-400">
-          {[
-            "14-day free trial",
-            "No credit card",
-            "Cancel anytime",
-            "SOC 2 Compliant",
-            "GDPR Ready",
-          ].map((t) => (
+          {["SOC 2 Compliant", "GDPR Ready"].map((t) => (
             <span key={t} className="flex items-center gap-1.5">
               <span className="text-emerald-400">✓</span> {t}
             </span>

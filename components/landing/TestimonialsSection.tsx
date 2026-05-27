@@ -22,7 +22,6 @@ const testimonials = [
   },
 ];
 
-const companies = ["TechNova", "CloudBase", "Orion Systems", "Meridian Financial", "Apex Global", "Vertex Health"];
 
 export default function TestimonialsSection() {
   return (
@@ -91,15 +90,6 @@ export default function TestimonialsSection() {
           ))}
         </div>
 
-        {/* Company logos strip */}
-        <div className="text-center">
-          <p className="text-slate-400 text-sm font-medium mb-6">Trusted by hiring teams at:</p>
-          <div className="flex flex-wrap justify-center gap-x-8 gap-y-3">
-            {companies.map((c) => (
-              <span key={c} className="text-slate-300 font-bold text-sm tracking-wide">{c}</span>
-            ))}
-          </div>
-        </div>
       </div>
     </section>
   );
