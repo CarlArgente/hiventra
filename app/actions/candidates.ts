@@ -413,3 +413,50 @@ export async function sendInterviewInvite(
   revalidatePath("/pipeline");
   return { success: true };
 }
+
+export async function resetAndResendInvite(candidateId: string) {
+  const supabase = await createClient();
+  await supabase.auth.getUser();
+
+  const { data: candidate } = await supabase
+    .from("candidates")
+    .select("job_id, jobs(carl_mode), interviews(mode)")
+    .eq("id", candidateId)
+    .single();
+
+  if (!candidate) return { error: "Candidate not found" };
+
+  const { error: clearErr } = await supabase
+    .from("interviews")
+    .update({
+      status: "pending",
+      responses: null,
+      questions: null,
+      started_at: null,
+      completed_at: null,
+      ai_score: null,
+      ai_recommendation: null,
+      ai_summary: null,
+      ai_strengths: null,
+      ai_weaknesses: null,
+      ai_skill_breakdown: null,
+      ai_interview_highlights: null,
+      ai_risks: null,
+      ai_analyzed_at: null,
+    })
+    .eq("candidate_id", candidateId);
+
+  if (clearErr) return { error: clearErr.message };
+
+  await supabase
+    .from("candidates")
+    .update({ ai_analyzed_at: null })
+    .eq("id", candidateId);
+
+  const mode =
+    (candidate.interviews as any[])?.[0]?.mode ??
+    (candidate.jobs as any)?.carl_mode ??
+    "voice";
+
+  return sendInterviewInvite(candidateId, (candidate as any).job_id, mode);
+}

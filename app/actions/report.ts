@@ -96,6 +96,8 @@ export async function generateInterviewAnalysis(candidateId: string) {
   if (fetchError || !candidate) return { error: "Candidate not found" };
 
   const interview = (candidate.interviews as any[])?.[0];
+  // Already analyzed — skip to prevent duplicate audit entries
+  if (interview?.ai_analyzed_at) return { score: interview.ai_score, recommendation: interview.ai_recommendation };
   const interviewId: string = interview?.id;
   const responses: Array<{ question: string; answer: string }> = interview?.responses ?? [];
   if (!responses.length) return { error: "No interview responses found" };
@@ -155,6 +157,7 @@ Rules:
         max_tokens: 2000,
         messages: [{ role: "user", content: prompt }],
       }),
+      signal: AbortSignal.timeout(60_000),
     });
 
     if (!response.ok) throw new Error(`Anthropic error: ${response.status}`);

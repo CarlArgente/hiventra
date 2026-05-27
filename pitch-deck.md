@@ -99,7 +99,32 @@ An AI-native hiring platform that automates resume screening, conducts live AI i
 
 ---
 
-## Slide 9: Thank You
+## Slide 9: Current Limitations
+
+> These are known constraints of the current MVP build, not product gaps.
+
+| Area | Limitation |
+|---|---|
+| **AI Avatar (Carl)** | Using Simli free tier — avatar model options are limited; premium faces, custom personas, and higher video quality require a paid plan |
+| **Anthropic Claude API** | Currently using Claude Haiku due to cost constraints — the model is optimized for speed and affordability but has less depth compared to Sonnet or Opus for complex analysis |
+| **Database Concurrency** | Running on Supabase free tier — connection limits may affect platform performance under high concurrent usage |
+| **Email Delivery** | Using Resend free subscription — monthly email send limit restricts the volume of candidate credential emails and interview invites that can be sent |
+
+---
+
+## Slide 10: Future Improvements
+
+| Improvement | Why |
+|---|---|
+| **Upgrade Simli to paid plan or migrate to HeyGen** | Unlock premium avatar models, custom Carl branding, and higher-fidelity video — significantly elevates the candidate interview experience and reflects company professionalism |
+| **Upgrade to Claude Sonnet or Opus** | Deeper reasoning for interview scoring, richer skill breakdown, better handling of nuanced or multilingual responses — produces more defensible and accurate hiring intelligence |
+| **Upgrade Supabase to a paid plan** | Higher connection limits, dedicated compute, and point-in-time recovery — required for production-scale reliability and enterprise SLAs |
+| **Upgrade Resend to a paid plan** | Remove monthly send limits — enables high-volume candidate onboarding, automated invite campaigns, and transactional emails at scale without throttling |
+
+---
+
+## Slide 11: Thank You
+
 
 **Hiventra** — *Hire Smarter. Move Faster. Never Miss the Right Person.*
 
