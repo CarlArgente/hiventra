@@ -8,7 +8,19 @@ export async function GET(request: NextRequest) {
   if (code) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
+
     if (!error) {
+      const { data: { user } } = await supabase.auth.getUser();
+      const provider = user?.app_metadata?.provider;
+
+      if (provider === "google" && user?.email) {
+        // Sign out the Google session — OTP is required as second factor
+        await supabase.auth.signOut();
+        const email = encodeURIComponent(user.email);
+        return NextResponse.redirect(`${origin}/signin/otp?email=${email}`);
+      }
+
+      // Email OTP magic link or other provider — go straight to dashboard
       return NextResponse.redirect(`${origin}/dashboard`);
     }
   }

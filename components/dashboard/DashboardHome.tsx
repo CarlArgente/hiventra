@@ -157,76 +157,6 @@ export default function DashboardHome({ data }: { data: DashboardData }) {
         />
       </div>
 
-      {/* Active Jobs + Activity */}
-      <div className="grid grid-cols-1 xl:grid-cols-5 gap-4">
-
-        {/* Active Jobs */}
-        <div className="xl:col-span-3 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-            <h2 className="font-bold text-slate-900">Active Jobs</h2>
-            <Link href="/jobs" className="text-xs text-indigo-600 font-medium hover:text-indigo-700 flex items-center gap-1">
-              View all <ArrowUpRight className="w-3 h-3" />
-            </Link>
-          </div>
-          {jobs.length === 0 ? (
-            <div className="px-5 py-10 text-center text-sm text-slate-400">No jobs yet. Create one to get started.</div>
-          ) : (
-            <div className="divide-y divide-slate-100">
-              {jobs.map((job) => (
-                <Link
-                  key={job.id}
-                  href={`/pipeline?job=${job.id}`}
-                  className="flex items-center justify-between px-5 py-3.5 hover:bg-slate-50 transition-colors"
-                >
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900">{job.title}</p>
-                    <p className="text-xs text-slate-500">{job.department ?? "—"}</p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs text-slate-500 flex items-center gap-1">
-                      <Users className="w-3 h-3" /> {job.applicantCount}
-                    </span>
-                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full capitalize ${STATUS_COLOR[job.status] ?? "bg-slate-100 text-slate-500"}`}>
-                      {job.status}
-                    </span>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Recent Activity */}
-        <div className="xl:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-slate-100">
-            <h2 className="font-bold text-slate-900">Recent Activity</h2>
-          </div>
-          {activity.length === 0 ? (
-            <div className="px-5 py-10 text-center text-sm text-slate-400">No activity yet.</div>
-          ) : (
-            <div className="divide-y divide-slate-100">
-              {activity.map((a) => {
-                const ev = EVENT_LABELS[a.eventType] ?? { label: a.eventType, color: "bg-slate-100 text-slate-600" };
-                return (
-                  <div key={a.id} className="px-5 py-3.5">
-                    <div className="flex items-start justify-between gap-2">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 mt-0.5 ${ev.color}`}>
-                        {ev.label}
-                      </span>
-                      <span className="text-[11px] text-slate-400 shrink-0 flex items-center gap-1">
-                        <Clock className="w-3 h-3" /> {timeAgo(a.createdAt)}
-                      </span>
-                    </div>
-                    <p className="text-sm font-medium text-slate-900 mt-1.5">{a.candidateName}</p>
-                    <p className="text-xs text-slate-500">{a.jobTitle}</p>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-
       {/* Pipeline Snapshot */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
         <div className="flex items-center justify-between mb-5">
@@ -269,6 +199,76 @@ export default function DashboardHome({ data }: { data: DashboardData }) {
             </Bar>
           </BarChart>
         </ResponsiveContainer>
+      </div>
+
+      {/* Active Jobs + Activity */}
+      <div className="grid grid-cols-1 xl:grid-cols-5 gap-4">
+
+        {/* Active Jobs */}
+        <div className="xl:col-span-3 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+            <h2 className="font-bold text-slate-900">Active Jobs</h2>
+            <Link href="/jobs" className="text-xs text-indigo-600 font-medium hover:text-indigo-700 flex items-center gap-1">
+              View all <ArrowUpRight className="w-3 h-3" />
+            </Link>
+          </div>
+          {jobs.length === 0 ? (
+            <div className="px-5 py-10 text-center text-sm text-slate-400">No jobs yet. Create one to get started.</div>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {jobs.slice(0, 5).map((job) => (
+                <Link
+                  key={job.id}
+                  href={`/pipeline?job=${job.id}`}
+                  className="flex items-center justify-between px-5 py-3.5 hover:bg-slate-50 transition-colors"
+                >
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">{job.title}</p>
+                    <p className="text-xs text-slate-500">{job.department ?? "—"}</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-slate-500 flex items-center gap-1">
+                      <Users className="w-3 h-3" /> {job.applicantCount}
+                    </span>
+                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full capitalize ${STATUS_COLOR[job.status] ?? "bg-slate-100 text-slate-500"}`}>
+                      {job.status}
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Recent Activity */}
+        <div className="xl:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-slate-100">
+            <h2 className="font-bold text-slate-900">Recent Activity</h2>
+          </div>
+          {activity.length === 0 ? (
+            <div className="px-5 py-10 text-center text-sm text-slate-400">No activity yet.</div>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {activity.slice(0, 5).map((a) => {
+                const ev = EVENT_LABELS[a.eventType] ?? { label: a.eventType, color: "bg-slate-100 text-slate-600" };
+                return (
+                  <div key={a.id} className="px-5 py-3.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 mt-0.5 ${ev.color}`}>
+                        {ev.label}
+                      </span>
+                      <span className="text-[11px] text-slate-400 shrink-0 flex items-center gap-1">
+                        <Clock className="w-3 h-3" /> {timeAgo(a.createdAt)}
+                      </span>
+                    </div>
+                    <p className="text-sm font-medium text-slate-900 mt-1.5">{a.candidateName}</p>
+                    <p className="text-xs text-slate-500">{a.jobTitle}</p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Quick Actions */}
